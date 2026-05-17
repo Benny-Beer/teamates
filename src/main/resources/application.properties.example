@@ -1,0 +1,14 @@
+spring.application.name=teamates
+
+# Database connection
+spring.datasource.url=jdbc:postgresql://localhost:5432/teamates
+spring.datasource.username=postgres
+spring.datasource.password=YOUR_PASSWORD_HERE
+
+# JPA / Hibernate
+spring.jpa.hibernate.ddl-auto=create
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# Google OAuth2
+google.client.id=YOUR_GOOGLE_CLIENT_ID_HERE
