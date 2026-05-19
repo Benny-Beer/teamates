@@ -33,6 +33,9 @@ public class Session {
     @Column(name = "scheduled_at", nullable = false)
     private LocalDateTime scheduledAt;
 
+    @Column(name = "end_time", nullable = false)
+    private LocalDateTime endTime;
+
     @ManyToOne
     @JoinColumn(name = "facility_id", nullable = false)
     private Facility facility;

@@ -22,10 +22,17 @@ public class SessionService {
     private final FacilityRepository facilityRepository;
 
     public Session createSession(User host, SportType sportType, String title,
-                                 LocalDateTime scheduledAt, String googlePlaceId,
+                                 LocalDateTime scheduledAt, LocalDateTime endTime,String googlePlaceId,
                                  String facilityName, String facilityAddress,
                                  BigDecimal facilityLatitude, BigDecimal facilityLongitude,
                                  Integer ageMin, Integer ageMax, Integer maxPlayers) {
+
+        // check host overlap
+        if (sessionRepository.existsOverlappingSessionForHost(
+                host.getUserId(), scheduledAt, endTime)) {
+            throw new IllegalArgumentException(
+                    "Host already has a session during this time");
+        }
 
         // find existing facility or create new one
         Facility facility = facilityRepository.findByGooglePlaceId(googlePlaceId)
@@ -39,11 +46,19 @@ public class SessionService {
                     return facilityRepository.save(newFacility);
                 });
 
+        // check facility overlap
+        if (sessionRepository.existsOverlappingSessionForFacility(
+                facility.getFacilityId(), scheduledAt, endTime)) {
+            throw new IllegalArgumentException(
+                    "Facility is already booked during this time");
+        }
+
         Session session = new Session();
         session.setHost(host);
         session.setSportType(sportType);
         session.setTitle(title);
         session.setScheduledAt(scheduledAt);
+        session.setEndTime(endTime);
         session.setFacility(facility);
         session.setAgeMin(ageMin);
         session.setAgeMax(ageMax);
