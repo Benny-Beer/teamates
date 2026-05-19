@@ -4,10 +4,13 @@ import com.teamates.model.Session;
 import com.teamates.model.SportType;
 import com.teamates.model.User;
 import com.teamates.model.Facility;
+import com.teamates.model.Registration;
+import com.teamates.repository.RegistrationRepository;
 import com.teamates.repository.FacilityRepository;
 import com.teamates.repository.SessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,7 +23,9 @@ public class SessionService {
 
     private final SessionRepository sessionRepository;
     private final FacilityRepository facilityRepository;
+    private final RegistrationRepository registrationRepository;
 
+    @Transactional
     public Session createSession(User host, SportType sportType, String title,
                                  LocalDateTime scheduledAt, LocalDateTime endTime,String googlePlaceId,
                                  String facilityName, String facilityAddress,
@@ -64,7 +69,15 @@ public class SessionService {
         session.setAgeMax(ageMax);
         session.setMaxPlayers(maxPlayers);
 
-        return sessionRepository.save(session);
+        Session savedSession = sessionRepository.save(session); // ← save session first
+
+        // auto-register host
+        Registration hostRegistration = new Registration();
+        hostRegistration.setSession(savedSession); // ← use the saved session
+        hostRegistration.setUser(host);
+        registrationRepository.save(hostRegistration);
+
+        return savedSession;
     }
 
 
