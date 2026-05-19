@@ -3,6 +3,8 @@ package com.teamates.service;
 import com.teamates.model.Session;
 import com.teamates.model.SportType;
 import com.teamates.model.User;
+import com.teamates.model.Facility;
+import com.teamates.repository.FacilityRepository;
 import com.teamates.repository.SessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -17,27 +19,38 @@ import java.util.UUID;
 public class SessionService {
 
     private final SessionRepository sessionRepository;
+    private final FacilityRepository facilityRepository;
 
     public Session createSession(User host, SportType sportType, String title,
-                                 LocalDateTime scheduledAt, BigDecimal latitude,
-                                 BigDecimal longitude, String address,
-                                 Integer ageMin, Integer ageMax,
-                                 Integer maxPlayers) {
+                                 LocalDateTime scheduledAt, String googlePlaceId,
+                                 String facilityName, String facilityAddress,
+                                 BigDecimal facilityLatitude, BigDecimal facilityLongitude,
+                                 Integer ageMin, Integer ageMax, Integer maxPlayers) {
+
+        // find existing facility or create new one
+        Facility facility = facilityRepository.findByGooglePlaceId(googlePlaceId)
+                .orElseGet(() -> {
+                    Facility newFacility = new Facility();
+                    newFacility.setGooglePlaceId(googlePlaceId);
+                    newFacility.setName(facilityName);
+                    newFacility.setAddress(facilityAddress);
+                    newFacility.setLatitude(facilityLatitude);
+                    newFacility.setLongitude(facilityLongitude);
+                    return facilityRepository.save(newFacility);
+                });
+
         Session session = new Session();
         session.setHost(host);
         session.setSportType(sportType);
         session.setTitle(title);
         session.setScheduledAt(scheduledAt);
-        session.setLatitude(latitude);
-        session.setLongitude(longitude);
-        session.setAddress(address);
+        session.setFacility(facility);
         session.setAgeMin(ageMin);
         session.setAgeMax(ageMax);
         session.setMaxPlayers(maxPlayers);
 
         return sessionRepository.save(session);
     }
-
 
 
     public Optional<Session> getSessionById(UUID sessionId) {

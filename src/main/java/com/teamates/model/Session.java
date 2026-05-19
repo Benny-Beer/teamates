@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -34,14 +33,9 @@ public class Session {
     @Column(name = "scheduled_at", nullable = false)
     private LocalDateTime scheduledAt;
 
-    @Column(nullable = false, precision = 9, scale = 6)
-    private BigDecimal latitude;
-
-    @Column(nullable = false, precision = 9, scale = 6)
-    private BigDecimal longitude;
-
-    @Column(nullable = false)
-    private String address;
+    @ManyToOne
+    @JoinColumn(name = "facility_id", nullable = false)
+    private Facility facility;
 
     @Column(name = "age_min")
     private Integer ageMin;
