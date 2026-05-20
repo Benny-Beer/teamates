@@ -32,8 +32,9 @@ public class User {
     @Column
     private String phone;
 
+    @Enumerated(EnumType.STRING)
     @Column
-    private String gender;
+    private Gender gender;
 
     @Column(name = "birth_date")
     private LocalDate birthDate;
