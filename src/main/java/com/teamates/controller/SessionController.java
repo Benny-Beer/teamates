@@ -5,6 +5,7 @@ import com.teamates.model.SportType;
 import com.teamates.model.User;
 import com.teamates.service.SessionService;
 import com.teamates.service.UserService;
+import com.teamates.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +25,7 @@ public class SessionController {
     @PostMapping
     public ResponseEntity<Session> createSession(@RequestBody CreateSessionRequest request) {
         User host = userService.getUserById(request.hostUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         Session session = sessionService.createSession(
                 host,
@@ -47,9 +48,9 @@ public class SessionController {
 
     @GetMapping("/{sessionId}")
     public ResponseEntity<Session> getSession(@PathVariable UUID sessionId) {
-        return sessionService.getSessionById(sessionId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Session session = sessionService.getSessionById(sessionId)
+                .orElseThrow(() -> new NotFoundException("Session not found"));
+        return ResponseEntity.ok(session);
     }
 
     @GetMapping("/host/{hostUserId}")

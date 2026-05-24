@@ -3,6 +3,7 @@ package com.teamates.controller;
 import com.teamates.model.Gender;
 import com.teamates.model.User;
 import com.teamates.service.UserService;
+import com.teamates.exception.NotFoundException;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +21,7 @@ public class UserController {
     public ResponseEntity<User> completeProfile(@PathVariable UUID userId,
                                                 @RequestBody CompleteProfileRequest request) {
         User user = userService.getUserById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         user = userService.completeProfile(user, request.gender(), request.birthDate());
         return ResponseEntity.ok(user);
@@ -28,16 +29,16 @@ public class UserController {
 
     @GetMapping("/{userId}")
     public ResponseEntity<User> getUser(@PathVariable UUID userId) {
-        return userService.getUserById(userId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        User user = userService.getUserById(userId)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        return ResponseEntity.ok(user);
     }
 
     @PatchMapping("/{userId}")
     public ResponseEntity<User> updateUser(@PathVariable UUID userId,
                                            @RequestBody UpdateUserRequest request) {
         User user = userService.getUserById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         user = userService.updateUser(user, request.firstName(),
                 request.lastName(), request.phone());

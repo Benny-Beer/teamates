@@ -9,6 +9,7 @@ import com.teamates.model.Registration;
 import com.teamates.model.Session;
 import com.teamates.repository.RegistrationRepository;
 import com.teamates.repository.SessionRepository;
+import com.teamates.exception.NotFoundException;
 import java.util.List;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
@@ -99,7 +100,7 @@ public class UserService {
     @Transactional
     public void deleteUser(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
 
         // get all registrations for this user
         List<Registration> allRegistrations = registrationRepository.findByUserUserId(userId);

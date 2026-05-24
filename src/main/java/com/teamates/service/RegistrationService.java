@@ -5,6 +5,7 @@ import com.teamates.model.Session;
 import com.teamates.model.User;
 import com.teamates.repository.RegistrationRepository;
 import com.teamates.repository.SessionRepository;
+import com.teamates.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -27,7 +28,7 @@ public class RegistrationService {
         }
 
         Session session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new RuntimeException("Session not found"));
+                .orElseThrow(() -> new NotFoundException("Session not found"));
 
 
         // check if already registered
@@ -53,7 +54,7 @@ public class RegistrationService {
 
         Registration registration = registrationRepository
                 .findBySessionSessionIdAndUserUserId(sessionId, user.getUserId())
-                .orElseThrow(() -> new RuntimeException("Registration not found"));
+                .orElseThrow(() -> new NotFoundException("Registration not found"));
 
         registrationRepository.delete(registration);
     }
