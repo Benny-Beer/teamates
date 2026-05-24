@@ -10,6 +10,7 @@ import java.util.UUID;
 @Repository
 public interface RegistrationRepository extends JpaRepository<Registration, UUID> {
     List<Registration> findBySessionSessionIdOrderByRegisteredAtAsc(UUID sessionId);
+    List<Registration> findByUserUserId(UUID userId);
     Optional<Registration> findBySessionSessionIdAndUserUserId(UUID sessionId, UUID userId);
     boolean existsBySessionSessionIdAndUserUserId(UUID sessionId, UUID userId);
     int countBySessionSessionId(UUID sessionId);

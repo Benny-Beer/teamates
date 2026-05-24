@@ -16,8 +16,15 @@ public class RegistrationService {
 
     private final RegistrationRepository registrationRepository;
     private final SessionRepository sessionRepository;
+    private final UserService userService;
 
     public Registration joinSession(User user, UUID sessionId) {
+
+
+        if (!userService.isProfileComplete(user)) {
+            throw new IllegalArgumentException(
+                    "Please complete your profile before joining a session");
+        }
 
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new RuntimeException("Session not found"));

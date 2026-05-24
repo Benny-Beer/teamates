@@ -24,6 +24,7 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final FacilityRepository facilityRepository;
     private final RegistrationRepository registrationRepository;
+    private final UserService userService;
 
     @Transactional
     public Session createSession(User host, SportType sportType, String title,
@@ -31,6 +32,11 @@ public class SessionService {
                                  String facilityName, String facilityAddress,
                                  BigDecimal facilityLatitude, BigDecimal facilityLongitude,
                                  Integer ageMin, Integer ageMax, Integer maxPlayers) {
+
+        if (!userService.isProfileComplete(host)) {
+            throw new IllegalArgumentException(
+                    "Please complete your profile before creating a session");
+        }
 
         // check host overlap
         if (sessionRepository.existsOverlappingSessionForHost(
