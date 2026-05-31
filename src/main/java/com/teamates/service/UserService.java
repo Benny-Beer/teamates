@@ -30,7 +30,7 @@ public class UserService {
     public User getOrCreateUser(String provider, String providerSub,
                                 String email, String firstName, String lastName
                                 ) {
-
+        //*
         Optional<UserIdentity> existingIdentity =
                 userIdentityRepository.findByProviderAndProviderSub(provider, providerSub);
 
@@ -54,7 +54,7 @@ public class UserService {
             newUser.setLastName(lastName);
             user = userRepository.save(newUser);
         }
-
+        //*
         // 3. Always create the new identity row
         UserIdentity newIdentity = new UserIdentity();
         newIdentity.setUser(user);

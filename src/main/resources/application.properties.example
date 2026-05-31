@@ -11,4 +11,4 @@ spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 
 # Google OAuth2
-google.client.id=YOUR_GOOGLE_CLIENT_ID_HERE
+google.client.id=322643731854-lj48lq7u0d1fdevici3hnu9imql06ras.apps.googleusercontent.com

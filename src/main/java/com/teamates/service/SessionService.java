@@ -8,6 +8,7 @@ import com.teamates.model.Registration;
 import com.teamates.repository.RegistrationRepository;
 import com.teamates.repository.FacilityRepository;
 import com.teamates.repository.SessionRepository;
+import com.teamates.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -84,6 +85,27 @@ public class SessionService {
         registrationRepository.save(hostRegistration);
 
         return savedSession;
+    }
+
+    @Transactional
+    public void deleteSession(UUID sessionId, UUID requestingUserId) {
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new NotFoundException("Session not found"));
+
+        if (!session.getHost().getUserId().equals(requestingUserId)) {
+            throw new IllegalArgumentException("Only the host can delete the session");
+        }
+
+        int registrationCount = registrationRepository.countBySessionSessionId(sessionId);
+
+        if (registrationCount > 1) {
+            throw new IllegalArgumentException(
+                    "You have players registered. Leave the session instead.");
+        }
+
+        registrationRepository.deleteAll(
+                registrationRepository.findBySessionSessionIdOrderByRegisteredAtAsc(sessionId));
+        sessionRepository.delete(session);
     }
 
 

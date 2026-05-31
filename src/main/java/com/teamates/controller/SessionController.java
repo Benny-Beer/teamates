@@ -63,6 +63,16 @@ public class SessionController {
         return ResponseEntity.ok(sessionService.getSessionsBySport(sportType));
     }
 
+    @DeleteMapping("/{sessionId}")
+    public ResponseEntity<Void> deleteSession(
+            @PathVariable UUID sessionId,
+            @RequestBody DeleteSessionRequest request) {
+        sessionService.deleteSession(sessionId, request.requestingUserId());
+        return ResponseEntity.noContent().build();
+    }
+
+    public record DeleteSessionRequest(UUID requestingUserId) {}
+
     public record CreateSessionRequest(
             UUID hostUserId,
             SportType sportType,
