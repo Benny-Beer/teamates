@@ -63,6 +63,35 @@ public class SessionController {
         return ResponseEntity.ok(sessionService.getSessionsBySport(sportType));
     }
 
+    @PatchMapping("/{sessionId}")
+    public ResponseEntity<Session> patchSession(
+            @PathVariable UUID sessionId,
+            @RequestBody PatchSessionRequest request) {
+        User currentUser = userService.getCurrentUser();
+        Session session = sessionService.patchSession(
+                sessionId,
+                currentUser.getUserId(),
+                request.title(),
+                request.scheduledAt(),
+                request.endTime(),
+                request.ageMin(),
+                request.ageMax(),
+                request.maxPlayers(),
+                request.genderPreference()
+        );
+        return ResponseEntity.ok(session);
+    }
+
+    public record PatchSessionRequest(
+            String title,
+            LocalDateTime scheduledAt,
+            LocalDateTime endTime,
+            Integer ageMin,
+            Integer ageMax,
+            Integer maxPlayers,
+            String genderPreference
+    ) {}
+
 
 
     @DeleteMapping("/{sessionId}")

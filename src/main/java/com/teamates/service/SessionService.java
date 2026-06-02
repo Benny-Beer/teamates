@@ -88,6 +88,40 @@ public class SessionService {
     }
 
     @Transactional
+    public Session patchSession(UUID sessionId, UUID requestingUserId,
+                                String title, LocalDateTime scheduledAt,
+                                LocalDateTime endTime, Integer ageMin,
+                                Integer ageMax, Integer maxPlayers,
+                                String genderPreference) {
+
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new NotFoundException("Session not found"));
+
+        if (!session.getHost().getUserId().equals(requestingUserId)) {
+            throw new IllegalArgumentException("Only the host can update the session");
+        }
+
+        int registrationCount = registrationRepository
+                .countBySessionSessionId(sessionId);
+
+        if (registrationCount > 1) {
+            // other players registered — only title can change
+            if (title != null) session.setTitle(title);
+        } else {
+            // host only — can change everything
+            if (title != null) session.setTitle(title);
+            if (scheduledAt != null) session.setScheduledAt(scheduledAt);
+            if (endTime != null) session.setEndTime(endTime);
+            if (ageMin != null) session.setAgeMin(ageMin);
+            if (ageMax != null) session.setAgeMax(ageMax);
+            if (maxPlayers != null) session.setMaxPlayers(maxPlayers);
+            if (genderPreference != null) session.setGenderPreference(genderPreference);
+        }
+
+        return sessionRepository.save(session);
+    }
+
+    @Transactional
     public void deleteSession(UUID sessionId, UUID requestingUserId) {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new NotFoundException("Session not found"));
