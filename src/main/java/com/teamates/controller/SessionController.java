@@ -22,10 +22,11 @@ public class SessionController {
     private final SessionService sessionService;
     private final UserService userService;
 
+
+
     @PostMapping
     public ResponseEntity<Session> createSession(@RequestBody CreateSessionRequest request) {
-        User host = userService.getUserById(request.hostUserId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        User host = userService.getCurrentUser();
 
         Session session = sessionService.createSession(
                 host,
@@ -42,7 +43,6 @@ public class SessionController {
                 request.ageMax(),
                 request.maxPlayers()
         );
-
         return ResponseEntity.ok(session);
     }
 
@@ -63,18 +63,18 @@ public class SessionController {
         return ResponseEntity.ok(sessionService.getSessionsBySport(sportType));
     }
 
+
+
     @DeleteMapping("/{sessionId}")
-    public ResponseEntity<Void> deleteSession(
-            @PathVariable UUID sessionId,
-            @RequestBody DeleteSessionRequest request) {
-        sessionService.deleteSession(sessionId, request.requestingUserId());
+    public ResponseEntity<Void> deleteSession(@PathVariable UUID sessionId) {
+        User currentUser = userService.getCurrentUser();
+        sessionService.deleteSession(sessionId, currentUser.getUserId());
         return ResponseEntity.noContent().build();
     }
 
-    public record DeleteSessionRequest(UUID requestingUserId) {}
+
 
     public record CreateSessionRequest(
-            UUID hostUserId,
             SportType sportType,
             String title,
             LocalDateTime scheduledAt,

@@ -22,26 +22,16 @@ public class RegistrationController {
     private final SessionService sessionService;
 
     @PostMapping("/{sessionId}/join")
-    public ResponseEntity<Registration> joinSession(
-            @PathVariable UUID sessionId,
-            @RequestBody JoinRequest request) {
-
-        User user = userService.getUserById(request.userId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        Registration registration = registrationService.joinSession(user, sessionId);
+    public ResponseEntity<Registration> joinSession(@PathVariable UUID sessionId) {
+        User currentUser = userService.getCurrentUser();
+        Registration registration = registrationService.joinSession(currentUser, sessionId);
         return ResponseEntity.ok(registration);
     }
 
     @DeleteMapping("/{sessionId}/leave")
-    public ResponseEntity<Void> leaveSession(
-            @PathVariable UUID sessionId,
-            @RequestBody LeaveRequest request) {
-
-        User user = userService.getUserById(request.userId())
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        registrationService.leaveSession(user, sessionId);
+    public ResponseEntity<Void> leaveSession(@PathVariable UUID sessionId) {
+        User currentUser = userService.getCurrentUser();
+        registrationService.leaveSession(currentUser, sessionId);
         return ResponseEntity.noContent().build();
     }
 
@@ -53,7 +43,4 @@ public class RegistrationController {
         return ResponseEntity.ok(
                 registrationService.getSessionRegistrations(sessionId));
     }
-
-    public record JoinRequest(UUID userId) {}
-    public record LeaveRequest(UUID userId) {}
 }

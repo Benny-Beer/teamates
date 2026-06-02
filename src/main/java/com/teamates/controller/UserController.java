@@ -17,14 +17,12 @@ public class UserController {
 
     private final UserService userService;
 
-    @PostMapping("/{userId}/complete-profile")
-    public ResponseEntity<User> completeProfile(@PathVariable UUID userId,
-                                                @RequestBody CompleteProfileRequest request) {
-        User user = userService.getUserById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        user = userService.completeProfile(user, request.gender(), request.birthDate());
-        return ResponseEntity.ok(user);
+    @PostMapping("/complete-profile")
+    public ResponseEntity<User> completeProfile(@RequestBody CompleteProfileRequest request) {
+        User currentUser = userService.getCurrentUser();
+        User updated = userService.completeProfile(currentUser,
+                request.gender(), request.birthDate());
+        return ResponseEntity.ok(updated);
     }
 
     @GetMapping("/{userId}")
@@ -34,20 +32,18 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    @PatchMapping("/{userId}")
-    public ResponseEntity<User> updateUser(@PathVariable UUID userId,
-                                           @RequestBody UpdateUserRequest request) {
-        User user = userService.getUserById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
-
-        user = userService.updateUser(user, request.firstName(),
-                request.lastName(), request.phone());
-        return ResponseEntity.ok(user);
+    @PatchMapping
+    public ResponseEntity<User> updateUser(@RequestBody UpdateUserRequest request) {
+        User currentUser = userService.getCurrentUser();
+        User updated = userService.updateUser(currentUser,
+                request.firstName(), request.lastName(), request.phone());
+        return ResponseEntity.ok(updated);
     }
 
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> deleteUser(@PathVariable UUID userId) {
-        userService.deleteUser(userId);
+    @DeleteMapping
+    public ResponseEntity<Void> deleteUser() {
+        User currentUser = userService.getCurrentUser();
+        userService.deleteUser(currentUser.getUserId());
         return ResponseEntity.noContent().build();
     }
 
