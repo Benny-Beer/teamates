@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teamates - Login</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+    <h1>Teamates</h1>
+
+    <div id="g_id_onload"
+         data-client_id="322643731854-ka496sl4g47qjqs7qjr8bh2abbvmrv2o.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse">
+    </div>
+
+    <div class="g_id_signin"
+         data-type="standard"
+         data-size="large"
+         data-theme="outline"
+         data-text="sign_in_with"
+         data-shape="rectangular">
+    </div>
+
+    <div id="result"></div>
+
+    <script>
+        function handleCredentialResponse(response) {
+            const idToken = response.credential;
+            console.log("Google token received:", idToken);
+
+            fetch('http://localhost:8080/api/auth/google', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: idToken })
+            })
+            .then(res => res.json())
+            .then(user => {
+                document.getElementById('result').innerHTML = 
+                    '<h2>Logged in as: ' + user.firstName + ' ' + user.lastName + '</h2>' +
+                    '<p>User ID: ' + user.userId + '</p>' +
+                    '<p>Email: ' + user.email + '</p>';
+            })
+            .catch(err => {
+                document.getElementById('result').innerHTML = 
+                    '<p>Error: ' + err + '</p>';
+            });
+        }
+    </script>
+
+</body>
+</html>
