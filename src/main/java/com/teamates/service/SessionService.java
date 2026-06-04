@@ -121,6 +121,16 @@ public class SessionService {
         return sessionRepository.save(session);
     }
 
+    public List<Session> getSessionsForUser(UUID userId, String role) {
+        if ("host".equalsIgnoreCase(role)) {
+            return sessionRepository.findByHostUserId(userId);
+        } else if ("player".equalsIgnoreCase(role)) {
+            return sessionRepository.findSessionsWhereUserIsPlayer(userId);
+        } else {
+            return sessionRepository.findAllSessionsForUser(userId);
+        }
+    }
+
     @Transactional
     public void deleteSession(UUID sessionId, UUID requestingUserId) {
         Session session = sessionRepository.findById(sessionId)
@@ -147,9 +157,6 @@ public class SessionService {
         return sessionRepository.findById(sessionId);
     }
 
-    public List<Session> getSessionsByHost(UUID hostUserId) {
-        return sessionRepository.findByHostUserId(hostUserId);
-    }
 
     public List<Session> getSessionsBySport(SportType sportType) {
         return sessionRepository.findBySportType(sportType);

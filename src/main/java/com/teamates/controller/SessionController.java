@@ -46,16 +46,19 @@ public class SessionController {
         return ResponseEntity.ok(session);
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<List<Session>> getMySessions(
+            @RequestParam(required = false) String role) {
+        User currentUser = userService.getCurrentUser();
+        return ResponseEntity.ok(
+                sessionService.getSessionsForUser(currentUser.getUserId(), role));
+    }
+
     @GetMapping("/{sessionId}")
     public ResponseEntity<Session> getSession(@PathVariable UUID sessionId) {
         Session session = sessionService.getSessionById(sessionId)
                 .orElseThrow(() -> new NotFoundException("Session not found"));
         return ResponseEntity.ok(session);
-    }
-
-    @GetMapping("/host/{hostUserId}")
-    public ResponseEntity<List<Session>> getSessionsByHost(@PathVariable UUID hostUserId) {
-        return ResponseEntity.ok(sessionService.getSessionsByHost(hostUserId));
     }
 
     @GetMapping("/sport/{sportType}")

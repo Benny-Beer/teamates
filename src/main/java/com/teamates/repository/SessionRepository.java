@@ -30,5 +30,11 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
             @Param("endTime") LocalDateTime endTime
     );
 
+    @Query("SELECT s FROM Session s JOIN Registration r ON r.session = s WHERE r.user.userId = :userId AND s.host.userId != :userId")
+    List<Session> findSessionsWhereUserIsPlayer(@Param("userId") UUID userId);
+
+    @Query("SELECT s FROM Session s JOIN Registration r ON r.session = s WHERE r.user.userId = :userId")
+    List<Session> findAllSessionsForUser(@Param("userId") UUID userId);
+
 }
 
