@@ -3,6 +3,8 @@ package com.teamates.controller;
 import com.teamates.model.Gender;
 import com.teamates.model.User;
 import com.teamates.service.UserService;
+import com.teamates.dto.UserMapper;
+import com.teamates.dto.UserResponseDTO;
 import com.teamates.exception.NotFoundException;
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
@@ -16,28 +18,29 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+    private final UserMapper userMapper;
 
     @PostMapping("/complete-profile")
-    public ResponseEntity<User> completeProfile(@RequestBody CompleteProfileRequest request) {
+    public ResponseEntity<UserResponseDTO> completeProfile(@RequestBody CompleteProfileRequest request) {
         User currentUser = userService.getCurrentUser();
         User updated = userService.completeProfile(currentUser,
                 request.gender(), request.birthDate());
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(userMapper.toDto(updated));
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<User> getUser(@PathVariable UUID userId) {
+    public ResponseEntity<UserResponseDTO> getUser(@PathVariable UUID userId) {
         User user = userService.getUserById(userId)
                 .orElseThrow(() -> new NotFoundException("User not found"));
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(userMapper.toDto(user));
     }
 
     @PatchMapping
-    public ResponseEntity<User> updateUser(@RequestBody UpdateUserRequest request) {
+    public ResponseEntity<UserResponseDTO> updateUser(@RequestBody UpdateUserRequest request) {
         User currentUser = userService.getCurrentUser();
         User updated = userService.updateUser(currentUser,
                 request.firstName(), request.lastName(), request.phone());
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(userMapper.toDto(updated));
     }
 
     @DeleteMapping
