@@ -6,7 +6,7 @@ import com.teamates.auth.AuthResult;
 import com.teamates.model.User;
 import com.teamates.security.JwtService;
 import com.teamates.service.UserService;
-import com.teamates.dto.UserResponseDTO;
+import com.teamates.dto.AuthResponseDTO;
 import com.teamates.dto.UserMapper;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,7 +25,7 @@ public class AuthController {
     private final UserMapper userMapper;
 
     @PostMapping("/{provider}")
-    public ResponseEntity<UserResponseDTO> login(
+    public ResponseEntity<AuthResponseDTO> login(
             @PathVariable String provider,
             @RequestBody TokenRequest request,
             HttpServletResponse response) {
@@ -55,7 +55,7 @@ public class AuthController {
             cookie.setMaxAge(604800); // 7 days in seconds
             response.addCookie(cookie);
 
-            return ResponseEntity.ok(userMapper.toDto(user));
+            return ResponseEntity.ok(userMapper.toAuthDto(user));
 
         } catch (Exception e) {
             return ResponseEntity.status(401).build();

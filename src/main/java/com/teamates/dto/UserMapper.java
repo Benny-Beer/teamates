@@ -24,5 +24,14 @@ public class UserMapper {
                 user.getLastName()
         );
     }
+
+    public AuthResponseDTO toAuthDto(User user) {
+        return new AuthResponseDTO(
+                user.getUserId(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getGender() != null && user.getBirthDate() != null
+        );
+    }
 }
 
