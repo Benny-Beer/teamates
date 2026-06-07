@@ -5,6 +5,8 @@ import com.teamates.model.User;
 import com.teamates.service.RegistrationService;
 import com.teamates.service.SessionService;
 import com.teamates.service.UserService;
+import com.teamates.dto.RegistrationMapper;
+import com.teamates.dto.RegistrationResponseDTO;
 import com.teamates.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -20,12 +22,13 @@ public class RegistrationController {
     private final RegistrationService registrationService;
     private final UserService userService;
     private final SessionService sessionService;
+    private final RegistrationMapper registrationMapper;
 
     @PostMapping("/{sessionId}/join")
-    public ResponseEntity<Registration> joinSession(@PathVariable UUID sessionId) {
+    public ResponseEntity<RegistrationResponseDTO> joinSession(@PathVariable UUID sessionId) {
         User currentUser = userService.getCurrentUser();
         Registration registration = registrationService.joinSession(currentUser, sessionId);
-        return ResponseEntity.ok(registration);
+        return ResponseEntity.ok(registrationMapper.toDto(registration));
     }
 
     @DeleteMapping("/{sessionId}/leave")
@@ -36,11 +39,15 @@ public class RegistrationController {
     }
 
     @GetMapping("/{sessionId}/registrations")
-    public ResponseEntity<List<Registration>> getRegistrations(
+    public ResponseEntity<List<RegistrationResponseDTO>> getRegistrations(
             @PathVariable UUID sessionId) {
         sessionService.getSessionById(sessionId)
                 .orElseThrow(() -> new NotFoundException("Session not found"));
         return ResponseEntity.ok(
-                registrationService.getSessionRegistrations(sessionId));
+                registrationService.getSessionRegistrations(sessionId)
+                        .stream()
+                        .map(registrationMapper::toDto)
+                        .toList()
+        );
     }
 }

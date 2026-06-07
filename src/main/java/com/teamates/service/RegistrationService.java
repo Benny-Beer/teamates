@@ -63,4 +63,8 @@ public class RegistrationService {
         return registrationRepository
                 .findBySessionSessionIdOrderByRegisteredAtAsc(sessionId);
     }
+
+    public int countPlayers(UUID sessionId) {
+        return registrationRepository.countBySessionSessionId(sessionId);
+    }
 }

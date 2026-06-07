@@ -5,6 +5,9 @@ import com.teamates.model.SportType;
 import com.teamates.model.User;
 import com.teamates.service.SessionService;
 import com.teamates.service.UserService;
+import com.teamates.dto.SessionMapper;
+import com.teamates.dto.SessionResponseDTO;
+import com.teamates.service.RegistrationService;
 import com.teamates.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -21,11 +24,13 @@ public class SessionController {
 
     private final SessionService sessionService;
     private final UserService userService;
+    private final SessionMapper sessionMapper;
+    private final RegistrationService registrationService;
 
 
 
     @PostMapping
-    public ResponseEntity<Session> createSession(@RequestBody CreateSessionRequest request) {
+    public ResponseEntity<SessionResponseDTO> createSession(@RequestBody CreateSessionRequest request) {
         User host = userService.getCurrentUser();
 
         Session session = sessionService.createSession(
@@ -43,31 +48,42 @@ public class SessionController {
                 request.ageMax(),
                 request.maxPlayers()
         );
-        return ResponseEntity.ok(session);
+        int currentPlayers = registrationService.countPlayers(session.getSessionId());
+        return ResponseEntity.ok(sessionMapper.toDto(session, currentPlayers));
     }
 
     @GetMapping("/my")
-    public ResponseEntity<List<Session>> getMySessions(
+    public ResponseEntity<List<SessionResponseDTO>> getMySessions(
             @RequestParam(required = false) String role) {
         User currentUser = userService.getCurrentUser();
         return ResponseEntity.ok(
-                sessionService.getSessionsForUser(currentUser.getUserId(), role));
+                sessionService.getSessionsForUser(currentUser.getUserId(), role)
+                        .stream()
+                        .map(s -> sessionMapper.toDto(s, registrationService.countPlayers(s.getSessionId())))
+                        .toList()
+        );
     }
 
     @GetMapping("/{sessionId}")
-    public ResponseEntity<Session> getSession(@PathVariable UUID sessionId) {
+    public ResponseEntity<SessionResponseDTO>  getSession(@PathVariable UUID sessionId) {
         Session session = sessionService.getSessionById(sessionId)
                 .orElseThrow(() -> new NotFoundException("Session not found"));
-        return ResponseEntity.ok(session);
+        int currentPlayers = registrationService.countPlayers(session.getSessionId());
+        return ResponseEntity.ok(sessionMapper.toDto(session, currentPlayers));
     }
 
     @GetMapping("/sport/{sportType}")
-    public ResponseEntity<List<Session>> getSessionsBySport(@PathVariable SportType sportType) {
-        return ResponseEntity.ok(sessionService.getSessionsBySport(sportType));
+    public ResponseEntity<List<SessionResponseDTO>> getSessionsBySport(@PathVariable SportType sportType) {
+        return ResponseEntity.ok(
+                sessionService.getSessionsBySport(sportType)
+                        .stream()
+                        .map(s -> sessionMapper.toDto(s, registrationService.countPlayers(s.getSessionId())))
+                        .toList()
+        );
     }
 
     @PatchMapping("/{sessionId}")
-    public ResponseEntity<Session> patchSession(
+    public ResponseEntity<SessionResponseDTO> patchSession(
             @PathVariable UUID sessionId,
             @RequestBody PatchSessionRequest request) {
         User currentUser = userService.getCurrentUser();
@@ -82,7 +98,8 @@ public class SessionController {
                 request.maxPlayers(),
                 request.genderPreference()
         );
-        return ResponseEntity.ok(session);
+        int currentPlayers = registrationService.countPlayers(session.getSessionId());
+        return ResponseEntity.ok(sessionMapper.toDto(session, currentPlayers));
     }
 
     public record PatchSessionRequest(

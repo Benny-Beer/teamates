@@ -16,4 +16,13 @@ public class UserMapper {
                 user.getGender() != null && user.getBirthDate() != null
         );
     }
+
+    public UserPublicDTO toPublicDto(User user) {
+        return new UserPublicDTO(
+                user.getUserId(),
+                user.getFirstName(),
+                user.getLastName()
+        );
+    }
 }
+
