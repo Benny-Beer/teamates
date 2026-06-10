@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.math.BigDecimal;
+import org.locationtech.jts.geom.Point;
 import java.util.UUID;
 
 @Data
@@ -28,9 +28,6 @@ public class Facility {
     @Column(nullable = false)
     private String address;
 
-    @Column(nullable = false, precision = 9, scale = 6)
-    private BigDecimal latitude;
-
-    @Column(nullable = false, precision = 9, scale = 6)
-    private BigDecimal longitude;
+    @Column(columnDefinition = "geography(Point,4326)", nullable = false)
+    private Point location;
 }

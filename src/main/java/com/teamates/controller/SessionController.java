@@ -82,6 +82,24 @@ public class SessionController {
         );
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<SessionResponseDTO>> searchSessions(
+            @RequestParam double lat,
+            @RequestParam double lng,
+            @RequestParam(defaultValue = "5000") double radius,
+            @RequestParam(required = false) String sport,
+            @RequestParam(required = false) Integer ageMin,
+            @RequestParam(required = false) Integer ageMax,
+            @RequestParam(required = false) String gender) {
+        return ResponseEntity.ok(
+                sessionService.searchSessions(lat, lng, radius, sport, ageMin, ageMax, gender)
+                        .stream()
+                        .map(s -> sessionMapper.toDto(s,
+                                registrationService.countPlayers(s.getSessionId())))
+                        .toList()
+        );
+    }
+
     @PatchMapping("/{sessionId}")
     public ResponseEntity<SessionResponseDTO> patchSession(
             @PathVariable UUID sessionId,

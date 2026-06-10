@@ -36,5 +36,34 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
     @Query("SELECT s FROM Session s JOIN Registration r ON r.session = s WHERE r.user.userId = :userId")
     List<Session> findAllSessionsForUser(@Param("userId") UUID userId);
 
+    @Query(value = """
+    SELECT DISTINCT s.* FROM sessions s
+    JOIN facilities f ON s.facility_id = f.facility_id
+    WHERE ST_DWithin(
+        f.location::geography,
+        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+        :radiusMeters
+    )
+    AND s.scheduled_at > NOW()
+    AND s.scheduled_at < :maxDate
+    AND (:sport IS NULL OR s.sport_type = :sport)
+    AND (:ageMin IS NULL OR s.age_min >= :ageMin)
+    AND (:ageMax IS NULL OR s.age_max <= :ageMax)
+    AND (:gender IS NULL OR s.gender_preference = :gender OR s.gender_preference IS NULL)
+    AND (
+        SELECT COUNT(*) FROM registrations r
+        WHERE r.session_id = s.session_id
+    ) < s.max_players
+    """, nativeQuery = true)
+    List<Session> searchSessions(
+            @Param("lat") double lat,
+            @Param("lng") double lng,
+            @Param("radiusMeters") double radiusMeters,
+            @Param("sport") String sport,
+            @Param("ageMin") Integer ageMin,
+            @Param("ageMax") Integer ageMax,
+            @Param("gender") String gender,
+            @Param("maxDate") java.time.LocalDateTime maxDate
+    );
 }
 

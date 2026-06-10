@@ -17,6 +17,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.PrecisionModel;
 
 @Service
 @RequiredArgsConstructor
@@ -49,12 +53,17 @@ public class SessionService {
         // find existing facility or create new one
         Facility facility = facilityRepository.findByGooglePlaceId(googlePlaceId)
                 .orElseGet(() -> {
+                    GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
+                    Point location = geometryFactory.createPoint(
+                            new Coordinate(facilityLongitude.doubleValue(), facilityLatitude.doubleValue())
+                    );
+                    location.setSRID(4326);
+
                     Facility newFacility = new Facility();
                     newFacility.setGooglePlaceId(googlePlaceId);
                     newFacility.setName(facilityName);
                     newFacility.setAddress(facilityAddress);
-                    newFacility.setLatitude(facilityLatitude);
-                    newFacility.setLongitude(facilityLongitude);
+                    newFacility.setLocation(location);
                     return facilityRepository.save(newFacility);
                 });
 
@@ -160,5 +169,13 @@ public class SessionService {
 
     public List<Session> getSessionsBySport(SportType sportType) {
         return sessionRepository.findBySportType(sportType);
+    }
+
+    public List<Session> searchSessions(double lat, double lng, double radiusMeters,
+                                        String sport, Integer ageMin, Integer ageMax,
+                                        String gender) {
+        LocalDateTime maxDate = LocalDateTime.now().plusMonths(3);
+        return sessionRepository.searchSessions(
+                lat, lng, radiusMeters, sport, ageMin, ageMax, gender, maxDate);
     }
 }
