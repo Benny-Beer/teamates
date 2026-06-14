@@ -27,4 +27,22 @@ public interface FacilityRepository extends JpaRepository<Facility, UUID> {
             @Param("lng") double lng,
             @Param("radiusMeters") double radiusMeters
     );
+
+
+    @Query(value = """
+    SELECT f.* FROM facilities f
+    JOIN facility_sports fs ON f.facility_id = fs.facility_id
+    WHERE ST_DWithin(
+        f.location::geography,
+        ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+        :radiusMeters
+    )
+    AND fs.sport_type = :sportType
+    """, nativeQuery = true)
+    List<Facility> findFacilitiesWithinRadiusAndSport(
+            @Param("lat") double lat,
+            @Param("lng") double lng,
+            @Param("radiusMeters") double radiusMeters,
+            @Param("sportType") String sportType
+    );
 }
