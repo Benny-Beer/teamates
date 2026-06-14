@@ -1,0 +1,303 @@
+@startuml Security Architecture
+
+title Security Architecture — Teamates
+
+allowmixing
+
+skinparam componentStyle rectangle
+skinparam classBackgroundColor #F0F8FF
+skinparam classBorderColor #2980B9
+skinparam interfaceBackgroundColor #FFF8E1
+skinparam interfaceBorderColor #F39C12
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageBorderColor #BDC3C7
+skinparam arrowColor #2C3E50
+skinparam noteBackgroundColor #FFFDE7
+skinparam noteBorderColor #F9A825
+skinparam roundcorner 8
+
+' ============================================================
+' SPRING SECURITY FILTER CHAIN
+' ============================================================
+package "Spring Security Filter Chain" #EBF5FB {
+
+    class SecurityConfig {
+        +filterChain(HttpSecurity): SecurityFilterChain
+        --
+        **Permitted (no auth):**
+        - POST /api/auth/**
+        - GET /index.html
+        **Requires auth:**
+        - all other endpoints
+        --
+        CORS: http://localhost:8080
+        CSRF: DISABLED
+        Session: STATELESS
+    }
+
+    class JwtAuthFilter {
+        -jwtService: JwtService
+        -userRepository: UserRepository
+        --
+        +doFilterInternal(request, response, chain): void
+        -extractJwtFromCookie(request): String
+        --
+        **Flow:**
+        1. Read cookie "jwt"
+        2. isTokenValid() → skip if invalid
+        3. extractUserId() → load User from DB
+        4. Set UsernamePasswordAuthenticationToken
+           in SecurityContextHolder
+    }
+
+    class CustomAuthEntryPoint <<implements AuthenticationEntryPoint>> {
+        +commence(request, response, ex): void
+        --
+        Returns HTTP 401 JSON:
+        { "status": 401, "message": "Unauthorized" }
+    }
+
+    note bottom of SecurityConfig
+      JwtAuthFilter is added BEFORE
+      UsernamePasswordAuthenticationFilter
+      in the filter chain
+    end note
+}
+
+' ============================================================
+' JWT SERVICE
+' ============================================================
+package "JWT Token Service" #E8F8E8 {
+
+    class JwtService {
+        -secret: String           // from jwt.secret property
+        -expirationMs: long       // from jwt.expiration (604800000ms = 7 days)
+        -signingKey: SecretKey    // derived from secret via HMAC-SHA
+        --
+        +generateToken(userId: UUID, email: String): String
+        +extractUserId(token: String): UUID
+        +isTokenValid(token: String): boolean
+        --
+        **Token structure (JWT Claims):**
+        - subject: userId (UUID)
+        - claim "email": user email
+        - issuedAt: now
+        - expiration: now + 7 days
+        --
+        **Algorithm:** HMAC-SHA256 (HS256)
+        **Library:** io.jsonwebtoken (jjwt 0.12.3)
+    }
+}
+
+' ============================================================
+' OAUTH PROVIDER SYSTEM
+' ============================================================
+package "OAuth Provider System" #FEF9E7 {
+
+    interface AuthProvider {
+        +getProviderName(): String
+        +verify(token: String): AuthResult
+    }
+
+    class GoogleAuthProvider {
+        -clientId: String   // from google.client.id property
+        --
+        +getProviderName(): String  // returns "google"
+        +verify(token: String): AuthResult
+        --
+        Uses GoogleIdTokenVerifier
+        Validates: signature + audience
+        Extracts: sub, email, given_name, family_name
+        Library: google-api-client 1.34.0
+    }
+
+    class AuthProviderRegistry {
+        -providers: Map<String, AuthProvider>
+        --
+        +getProvider(name: String): AuthProvider
+        --
+        Auto-discovers all AuthProvider beans
+        via Spring @Autowired(List<AuthProvider>)
+    }
+
+    class AuthResult <<record>> {
+        providerSub: String
+        email: String
+        firstName: String
+        lastName: String
+    }
+}
+
+' ============================================================
+' AUTH CONTROLLER
+' ============================================================
+package "Authentication Endpoints" #F5EEF8 {
+
+    class AuthController {
+        **POST /api/auth/{provider}**
+        1. Get provider from registry
+        2. Verify provider token
+        3. getOrCreateUser()
+        4. generateToken()
+        5. Set HttpOnly cookie "jwt"
+        6. Return AuthResponseDTO
+        --
+        **POST /api/auth/logout**
+        1. Set cookie Max-Age=0 (delete)
+        2. Return 204 No Content
+    }
+
+    class AuthResponseDTO <<record>> {
+        userId: UUID
+        firstName: String
+        lastName: String
+        isProfileComplete: boolean
+    }
+}
+
+' ============================================================
+' USER DOMAIN
+' ============================================================
+package "User Domain" #FEF5E7 {
+
+    class UserService {
+        +getOrCreateUser(provider, sub, email, firstName, lastName): User
+        +getCurrentUser(): User
+        +getUserById(UUID): User
+        +isProfileComplete(User): boolean
+        +updateUser(req): User
+        +completeProfile(req): User
+        +deleteUser(UUID): void
+        --
+        getCurrentUser() reads from SecurityContextHolder
+    }
+
+    class User <<@Entity>> {
+        userId: UUID  [PK, auto-generated]
+        email: String [UNIQUE, NOT NULL]
+        firstName: String [NOT NULL]
+        lastName: String [NOT NULL]
+        phone: String [nullable]
+        gender: Gender [nullable] ← profile complete flag
+        birthDate: LocalDate [nullable] ← profile complete flag
+        createdAt: LocalDateTime [auto]
+    }
+
+    class UserIdentity <<@Entity>> {
+        identityId: UUID [PK]
+        user: User [FK → users.user_id]
+        provider: String [e.g. "google"]
+        providerSub: String [provider's user ID]
+        createdAt: LocalDateTime
+        --
+        UNIQUE (provider, providerSub)
+        Allows one user to link multiple OAuth providers
+    }
+
+    class UserRepository <<JpaRepository>> {
+        +findByEmail(email): Optional<User>
+    }
+
+    class UserIdentityRepository <<JpaRepository>> {
+        +findByProviderAndProviderSub(provider, sub): Optional<UserIdentity>
+    }
+
+    class UserMapper {
+        +toDto(User): UserResponseDTO
+        +toPublicDto(User): UserPublicDTO
+        +toAuthDto(User): AuthResponseDTO
+    }
+}
+
+' ============================================================
+' PROTECTED CONTROLLERS
+' ============================================================
+package "Protected API Endpoints (require JWT)" #F9EBEA {
+    class UserController {
+        GET    /api/users/{userId}
+        PATCH  /api/users
+        DELETE /api/users
+        POST   /api/users/complete-profile
+    }
+
+    class SessionController {
+        POST   /api/sessions
+        GET    /api/sessions/my
+        PATCH  /api/sessions/{sessionId}
+        DELETE /api/sessions/{sessionId}
+    }
+}
+
+' ============================================================
+' DATABASE
+' ============================================================
+database "PostgreSQL" as DB {
+    rectangle "users" as TBL_USERS
+    rectangle "user_identity" as TBL_IDENTITY
+}
+
+
+' ============================================================
+' RELATIONSHIPS
+' ============================================================
+
+' Security config wires everything
+SecurityConfig --> JwtAuthFilter        : registers in filter chain
+SecurityConfig --> CustomAuthEntryPoint : handles 401
+
+' Filter uses JWT service
+JwtAuthFilter --> JwtService            : isTokenValid(), extractUserId()
+JwtAuthFilter --> UserRepository        : load User by userId
+
+' Auth flow
+AuthController --> AuthProviderRegistry : getProvider(name)
+AuthController --> UserService          : getOrCreateUser()
+AuthController --> JwtService           : generateToken()
+AuthController --> UserMapper           : toAuthDto()
+AuthController ..> AuthResponseDTO      : returns
+
+' Provider chain
+GoogleAuthProvider ..|> AuthProvider
+AuthProviderRegistry --> AuthProvider   : manages (1..*)
+GoogleAuthProvider --> AuthResult       : returns
+
+' User domain
+UserService --> UserRepository          : findByEmail()
+UserService --> UserIdentityRepository  : findByProviderAndProviderSub()
+UserIdentity }o--|| User               : belongs to (ManyToOne)
+UserRepository ..> DB
+UserIdentityRepository ..> DB
+
+' Protected controllers
+UserController --> UserService          : getCurrentUser()
+SessionController --> UserService       : getCurrentUser()
+
+' ============================================================
+' NOTES
+' ============================================================
+note right of JwtAuthFilter
+  **Cookie Security:**
+  - HttpOnly: prevents JS access (XSS protection)
+  - Path=/: sent on all requests
+  - Max-Age: 604800 (7 days)
+  - No Secure flag set (should add for HTTPS prod)
+end note
+
+note right of User
+  **Profile Completion:**
+  isProfileComplete = gender != null
+                      AND birthDate != null
+  Checked in AuthResponseDTO
+  to redirect user to setup page
+end note
+
+note bottom of DB
+  **Schema:**
+  users(user_id PK, email UNIQUE, first_name,
+        last_name, phone, gender, birth_date, created_at)
+  user_identity(identity_id PK, user_id FK,
+        provider, provider_sub, created_at)
+  UNIQUE(provider, provider_sub)
+end note
+
+@enduml

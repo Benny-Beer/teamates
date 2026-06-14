@@ -1,0 +1,126 @@
+@startuml Login Flow
+
+title Login & Authenticated Request Flow
+
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 10
+skinparam sequenceParticipantBackgroundColor #E8F4FD
+skinparam sequenceParticipantBorderColor #2980B9
+skinparam sequenceActorBackgroundColor #FDEBD0
+skinparam sequenceActorBorderColor #E67E22
+skinparam noteFontColor #333
+skinparam noteBackgroundColor #FFFDE7
+skinparam dividerBackgroundColor #D5E8D4
+
+actor Client
+participant "AuthController\nPOST /api/auth/{provider}" as AC
+participant "AuthProviderRegistry" as APR
+participant "GoogleAuthProvider" as GAP
+participant "Google API" as GG
+participant "UserService" as US
+participant "UserIdentityRepository" as UIR
+participant "UserRepository" as UR
+participant "JwtService" as JWT
+database "PostgreSQL" as DB
+
+== Initial Login ==
+
+Client -> AC : POST /api/auth/google\nBody: { token: "google_id_token" }
+
+AC -> APR : getProvider("google")
+APR --> AC : GoogleAuthProvider instance
+
+AC -> GAP : verify(token)
+GAP -> GG : GoogleIdTokenVerifier.verify(idToken)
+GG --> GAP : IdToken Payload\n{ sub, email, given_name, family_name }
+GAP --> AC : AuthResult { providerSub, email, firstName, lastName }
+
+note right of GAP
+  Validates:
+  - Token signature
+  - Audience (google.client.id)
+  - Expiration
+end note
+
+AC -> US : getOrCreateUser("google", providerSub, email, firstName, lastName)
+
+US -> UIR : findByProviderAndProviderSub("google", providerSub)
+UIR -> DB : SELECT * FROM user_identity\nWHERE provider='google'\nAND provider_sub=?
+DB --> UIR : Optional<UserIdentity>
+
+alt UserIdentity already exists (returning user)
+    UIR --> US : UserIdentity → User (existing)
+else UserIdentity not found (new provider or new user)
+    UIR --> US : empty Optional
+    US -> UR : findByEmail(email)
+    UR -> DB : SELECT * FROM users\nWHERE email=?
+    DB --> UR : Optional<User>
+    alt User with this email already exists (link new provider)
+        UR --> US : existing User
+    else No user found (brand new user)
+        US -> DB : INSERT INTO users\n(userId, email, firstName, lastName, createdAt)
+        DB --> US : new User entity
+    end
+    US -> DB : INSERT INTO user_identity\n(identityId, user_id, provider, provider_sub, createdAt)
+    DB --> US : new UserIdentity (provider linked)
+end
+
+US --> AC : User entity
+
+AC -> JWT : generateToken(user.userId, user.email)
+note right of JWT
+  Creates JWT:
+  - Subject: userId (UUID)
+  - Claim: email
+  - Algorithm: HMAC-SHA256
+  - Expiration: 7 days (604800000ms)
+end note
+JWT --> AC : signed JWT string
+
+AC --> Client : HTTP 200 OK\nBody: AuthResponseDTO { userId, firstName, lastName, isProfileComplete }\nSet-Cookie: jwt=<token>; HttpOnly; Path=/; Max-Age=604800
+
+== Subsequent Authenticated Request ==
+
+Client -> AC : GET /api/users/{userId}\nCookie: jwt=<token>
+
+note over AC
+  Request first passes through JwtAuthFilter
+  (runs before UsernamePasswordAuthenticationFilter)
+end note
+
+box "JwtAuthFilter (Spring Security Filter Chain)" #LightYellow
+    participant "JwtAuthFilter" as JAF
+end box
+
+Client -> JAF : request intercepted
+JAF -> JAF : extract JWT from cookie "jwt"
+JAF -> JWT : isTokenValid(token)
+JWT --> JAF : true (signature valid, not expired)
+JAF -> JWT : extractUserId(token)
+JWT --> JAF : UUID userId
+JAF -> DB : SELECT * FROM users WHERE user_id=?
+DB --> JAF : User entity
+JAF -> JAF : set UsernamePasswordAuthenticationToken\nin SecurityContextHolder
+
+JAF -> AC : forward request\n(authenticated as User)
+AC -> US : getCurrentUser()\nfrom SecurityContextHolder
+US --> AC : authenticated User
+AC --> Client : HTTP 200 OK\nUserResponseDTO { userId, firstName, lastName, ... }
+
+== Logout ==
+
+Client -> AC : POST /api/auth/logout\nCookie: jwt=<token>
+AC --> Client : HTTP 204 No Content\nSet-Cookie: jwt=; Path=/; Max-Age=0\n(cookie deleted)
+
+== Unauthorized Request (No Cookie) ==
+
+Client -> JAF : GET /api/sessions (no jwt cookie)
+JAF -> JAF : no JWT found,\ndo not set SecurityContext
+JAF -> AC : forward unauthenticated request
+note over AC
+  Spring Security sees no Authentication
+  in SecurityContextHolder
+end note
+AC --> Client : HTTP 401 Unauthorized\n{ "status": 401, "message": "Unauthorized" }\n(from custom AuthenticationEntryPoint)
+
+@enduml

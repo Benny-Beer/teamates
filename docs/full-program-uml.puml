@@ -1,0 +1,468 @@
+@startuml Full Program Architecture
+
+title Teamates — Full System Class Diagram
+
+skinparam classBackgroundColor #F0F8FF
+skinparam classBorderColor #2980B9
+skinparam interfaceBackgroundColor #FFF8E1
+skinparam interfaceBorderColor #F39C12
+skinparam enumBackgroundColor #E8F8E8
+skinparam enumBorderColor #27AE60
+skinparam packageBackgroundColor #FAFAFA
+skinparam packageBorderColor #BDC3C7
+skinparam arrowColor #2C3E50
+skinparam roundcorner 8
+skinparam classAttributeIconSize 0
+skinparam wrapWidth 200
+
+' ╔══════════════════════════════════════════════════════════╗
+' ║  MODELS / ENTITIES                                       ║
+' ╚══════════════════════════════════════════════════════════╝
+package "com.teamates.model" #FEF5E7 {
+
+    enum Gender {
+        MALE
+        FEMALE
+    }
+
+    enum SportType {
+        BASKETBALL
+        FOOTBALL
+        TENNIS
+        VOLLEYBALL
+        SWIMMING
+    }
+
+    class User <<@Entity\ntable: users>> {
+        +userId: UUID [PK, auto-UUID]
+        +email: String [UNIQUE, NOT NULL]
+        +firstName: String [NOT NULL]
+        +lastName: String [NOT NULL]
+        +phone: String
+        +gender: Gender
+        +birthDate: LocalDate
+        +createdAt: LocalDateTime
+    }
+
+    class UserIdentity <<@Entity\ntable: user_identities>> {
+        +identityId: UUID [PK, auto-UUID]
+        +provider: String [NOT NULL]
+        +providerSub: String [NOT NULL]
+        +createdAt: LocalDateTime
+        --
+        UNIQUE (provider, providerSub)
+    }
+
+    class Facility <<@Entity\ntable: facilities>> {
+        +facilityId: UUID [PK, auto-UUID]
+        +googlePlaceId: String [UNIQUE, NOT NULL]
+        +name: String [NOT NULL]
+        +address: String [NOT NULL]
+        +location: Point [PostGIS geography]
+    }
+
+    class Session <<@Entity\ntable: sessions>> {
+        +sessionId: UUID [PK, auto-UUID]
+        +sportType: SportType [NOT NULL]
+        +title: String [NOT NULL]
+        +scheduledAt: LocalDateTime [NOT NULL]
+        +endTime: LocalDateTime [NOT NULL]
+        +ageMin: Integer
+        +ageMax: Integer
+        +genderPreference: String
+        +maxPlayers: Integer [NOT NULL]
+        +createdAt: LocalDateTime
+    }
+
+    class Registration <<@Entity\ntable: registrations>> {
+        +registrationId: UUID [PK, auto-UUID]
+        +registeredAt: LocalDateTime
+        --
+        UNIQUE (session_id, user_id)
+    }
+
+    ' --- Entity FK Relationships ---
+    UserIdentity "*" --> "1" User       : user (FK)
+    Session     "*" --> "1" User        : host (FK)
+    Session     "*" --> "1" Facility    : facility (FK)
+    Registration "*" --> "1" Session    : session (FK)
+    Registration "*" --> "1" User       : user (FK)
+
+    User        --> Gender
+    User        --> SportType
+    Session     --> SportType
+}
+
+' ╔══════════════════════════════════════════════════════════╗
+' ║  REPOSITORIES                                            ║
+' ╚══════════════════════════════════════════════════════════╝
+package "com.teamates.repository" #E8F8E8 {
+
+    interface UserRepository <<JpaRepository<User, UUID>>> {
+        +findByEmail(email: String): Optional<User>
+    }
+
+    interface UserIdentityRepository <<JpaRepository<UserIdentity, UUID>>> {
+        +findByProviderAndProviderSub(provider: String, sub: String): Optional<UserIdentity>
+    }
+
+    interface FacilityRepository <<JpaRepository<Facility, UUID>>> {
+        +findByGooglePlaceId(id: String): Optional<Facility>
+        +findFacilitiesWithinRadius(lat: double, lng: double, radius: double): List<Facility>
+    }
+
+    interface RegistrationRepository <<JpaRepository<Registration, UUID>>> {
+        +findBySessionSessionIdOrderByRegisteredAtAsc(sessionId: UUID): List<Registration>
+        +findByUserUserId(userId: UUID): List<Registration>
+        +findBySessionSessionIdAndUserUserId(sessionId: UUID, userId: UUID): Optional<Registration>
+        +existsBySessionSessionIdAndUserUserId(sessionId: UUID, userId: UUID): boolean
+        +countBySessionSessionId(sessionId: UUID): int
+    }
+
+    interface SessionRepository <<JpaRepository<Session, UUID>>> {
+        +findByHostUserId(hostUserId: UUID): List<Session>
+        +findBySportType(sportType: SportType): List<Session>
+        +existsOverlappingSessionForHost(hostId: UUID, scheduledAt: LocalDateTime, endTime: LocalDateTime): boolean
+        +existsOverlappingSessionForFacility(facilityId: UUID, scheduledAt: LocalDateTime, endTime: LocalDateTime): boolean
+        +findSessionsWhereUserIsPlayer(userId: UUID): List<Session>
+        +findAllSessionsForUser(userId: UUID): List<Session>
+        +searchSessions(lat: double, lng: double, radiusMeters: double, sport: String, ageMin: Integer, ageMax: Integer, gender: String, maxDate: LocalDateTime): List<Session>
+    }
+
+    ' Repos operate on entities
+    UserRepository          ..> User         : manages
+    UserIdentityRepository  ..> UserIdentity : manages
+    FacilityRepository      ..> Facility     : manages
+    RegistrationRepository  ..> Registration : manages
+    SessionRepository       ..> Session      : manages
+}
+
+' ╔══════════════════════════════════════════════════════════╗
+' ║  SERVICES                                                ║
+' ╚══════════════════════════════════════════════════════════╝
+package "com.teamates.service" #F5EEF8 {
+
+    class UserService <<@Service>> {
+        -userRepository: UserRepository
+        -userIdentityRepository: UserIdentityRepository
+        -registrationRepository: RegistrationRepository
+        -sessionRepository: SessionRepository
+        --
+        +getOrCreateUser(provider, providerSub, email, firstName, lastName): User
+        +getCurrentUser(): User
+        +getUserById(userId: UUID): Optional<User>
+        +isProfileComplete(user: User): boolean
+        +saveUser(user: User): User
+        +updateUser(user, firstName, lastName, phone): User
+        +completeProfile(user, gender, birthDate): User
+        +deleteUser(userId: UUID): void
+        -handleHostDeletion(session, hostReg, userId): void
+    }
+
+    class SessionService <<@Service>> {
+        -sessionRepository: SessionRepository
+        -facilityRepository: FacilityRepository
+        -registrationRepository: RegistrationRepository
+        -userService: UserService
+        --
+        +createSession(host, sportType, title, scheduledAt, endTime, googlePlaceId, facilityName, facilityAddress, lat, lng, ageMin, ageMax, maxPlayers): Session
+        +patchSession(sessionId, requestingUserId, title, scheduledAt, endTime, ageMin, ageMax, maxPlayers, genderPreference): Session
+        +getSessionById(sessionId: UUID): Optional<Session>
+        +getSessionsBySport(sportType: SportType): List<Session>
+        +getSessionsForUser(userId: UUID, role: String): List<Session>
+        +searchSessions(lat, lng, radiusMeters, sport, ageMin, ageMax, gender): List<Session>
+        +deleteSession(sessionId: UUID, requestingUserId: UUID): void
+    }
+
+    class RegistrationService <<@Service>> {
+        -registrationRepository: RegistrationRepository
+        -sessionRepository: SessionRepository
+        -userService: UserService
+        --
+        +joinSession(user: User, sessionId: UUID): Registration
+        +leaveSession(user: User, sessionId: UUID): void
+        +getSessionRegistrations(sessionId: UUID): List<Registration>
+        +countPlayers(sessionId: UUID): int
+    }
+
+    class FacilityService <<@Service>> {
+        -facilityRepository: FacilityRepository
+        --
+        +searchNearby(lat: double, lng: double, radiusMeters: double): List<Facility>
+    }
+
+    ' Service → Repository dependencies
+    UserService         --> UserRepository
+    UserService         --> UserIdentityRepository
+    UserService         --> RegistrationRepository
+    UserService         --> SessionRepository
+    SessionService      --> SessionRepository
+    SessionService      --> FacilityRepository
+    SessionService      --> RegistrationRepository
+    SessionService      --> UserService
+    RegistrationService --> RegistrationRepository
+    RegistrationService --> SessionRepository
+    RegistrationService --> UserService
+    FacilityService     --> FacilityRepository
+}
+
+' ╔══════════════════════════════════════════════════════════╗
+' ║  DTOs & MAPPERS                                          ║
+' ╚══════════════════════════════════════════════════════════╝
+package "com.teamates.dto" #E8F4FD {
+
+    class AuthResponseDTO <<record>> {
+        +userId: UUID
+        +firstName: String
+        +lastName: String
+        +isProfileComplete: boolean
+    }
+
+    class UserResponseDTO <<record>> {
+        +userId: UUID
+        +firstName: String
+        +lastName: String
+        +phone: String
+        +gender: Gender
+        +isProfileComplete: boolean
+    }
+
+    class UserPublicDTO <<record>> {
+        +userId: UUID
+        +firstName: String
+        +lastName: String
+    }
+
+    class SessionResponseDTO <<record>> {
+        +sessionId: UUID
+        +title: String
+        +sportType: SportType
+        +scheduledAt: LocalDateTime
+        +endTime: LocalDateTime
+        +hostId: UUID
+        +hostName: String
+        +facilityName: String
+        +facilityAddress: String
+        +currentPlayers: int
+        +maxPlayers: int
+        +ageMin: Integer
+        +ageMax: Integer
+        +genderPreference: String
+    }
+
+    class RegistrationResponseDTO <<record>> {
+        +registrationId: UUID
+        +user: UserPublicDTO
+        +registeredAt: LocalDateTime
+    }
+
+    class UserMapper <<@Component>> {
+        +toDto(user: User): UserResponseDTO
+        +toPublicDto(user: User): UserPublicDTO
+        +toAuthDto(user: User): AuthResponseDTO
+    }
+
+    class SessionMapper <<@Component>> {
+        +toDto(session: Session, currentPlayers: int): SessionResponseDTO
+    }
+
+    class RegistrationMapper <<@Component>> {
+        -userMapper: UserMapper
+        --
+        +toDto(registration: Registration): RegistrationResponseDTO
+    }
+
+    UserMapper          ..> UserResponseDTO        : creates
+    UserMapper          ..> UserPublicDTO          : creates
+    UserMapper          ..> AuthResponseDTO        : creates
+    SessionMapper       ..> SessionResponseDTO     : creates
+    RegistrationMapper  ..> RegistrationResponseDTO : creates
+    RegistrationMapper  --> UserMapper
+    RegistrationResponseDTO --> UserPublicDTO
+}
+
+' ╔══════════════════════════════════════════════════════════╗
+' ║  AUTH PROVIDER SYSTEM                                    ║
+' ╚══════════════════════════════════════════════════════════╝
+package "com.teamates.auth" #FEF9E7 {
+
+    interface AuthProvider {
+        +getProviderName(): String
+        +verify(token: String): AuthResult
+    }
+
+    class GoogleAuthProvider <<@Component>> {
+        -googleClientId: String
+        --
+        +getProviderName(): String
+        +verify(token: String): AuthResult
+    }
+
+    class AuthProviderRegistry <<@Component>> {
+        -providers: Map<String, AuthProvider>
+        --
+        +AuthProviderRegistry(providerList: List<AuthProvider>)
+        +getProvider(name: String): AuthProvider
+    }
+
+    class AuthResult <<record>> {
+        +providerSub: String
+        +email: String
+        +firstName: String
+        +lastName: String
+    }
+
+    GoogleAuthProvider  ..|> AuthProvider
+    AuthProviderRegistry --> AuthProvider   : manages (1..*)
+    GoogleAuthProvider  ..> AuthResult      : returns
+}
+
+' ╔══════════════════════════════════════════════════════════╗
+' ║  SECURITY                                                ║
+' ╚══════════════════════════════════════════════════════════╝
+package "com.teamates.security" #E9F7EF {
+
+    class SecurityConfig <<@Configuration\n@EnableWebSecurity>> {
+        -jwtAuthFilter: JwtAuthFilter
+        --
+        +filterChain(http: HttpSecurity): SecurityFilterChain
+        --
+        CORS: http://localhost:8080
+        CSRF: DISABLED
+        Session: STATELESS
+        Public: /api/auth/**, /index.html
+        Protected: all others
+    }
+
+    class JwtAuthFilter <<@Component\nextends OncePerRequestFilter>> {
+        -jwtService: JwtService
+        -userService: UserService
+        --
+        +doFilterInternal(request, response, chain): void
+        -extractJwtFromCookie(request: HttpServletRequest): String
+    }
+
+    class JwtService <<@Service>> {
+        -secret: String
+        -expiration: long [604800000ms = 7 days]
+        --
+        +generateToken(userId: UUID, email: String): String
+        +extractUserId(token: String): UUID
+        +isTokenValid(token: String): boolean
+        -getSigningKey(): SecretKey
+    }
+
+    SecurityConfig  --> JwtAuthFilter : registers in filter chain
+    JwtAuthFilter   --> JwtService    : validates tokens
+    JwtAuthFilter   --> UserService   : loads user from DB
+}
+
+' ╔══════════════════════════════════════════════════════════╗
+' ║  CONTROLLERS                                             ║
+' ╚══════════════════════════════════════════════════════════╝
+package "com.teamates.controller" #FDEBD0 {
+
+    class AuthController <<@RestController\n/api/auth>> {
+        -authProviderRegistry: AuthProviderRegistry
+        -userService: UserService
+        -jwtService: JwtService
+        -userMapper: UserMapper
+        --
+        +login(provider: String, TokenRequest, HttpServletResponse): ResponseEntity<AuthResponseDTO>
+        +logout(HttpServletResponse): ResponseEntity<Void>
+        --
+        record TokenRequest(token: String)
+    }
+
+    class UserController <<@RestController\n/api/users>> {
+        -userService: UserService
+        -userMapper: UserMapper
+        --
+        +getUser(userId: UUID): ResponseEntity<UserResponseDTO>
+        +updateUser(UpdateUserRequest): ResponseEntity<UserResponseDTO>
+        +completeProfile(CompleteProfileRequest): ResponseEntity<UserResponseDTO>
+        +deleteUser(): ResponseEntity<Void>
+        --
+        record UpdateUserRequest(firstName, lastName, phone)
+        record CompleteProfileRequest(gender: Gender, birthDate: LocalDate)
+    }
+
+    class SessionController <<@RestController\n/api/sessions>> {
+        -sessionService: SessionService
+        -userService: UserService
+        -sessionMapper: SessionMapper
+        -registrationService: RegistrationService
+        --
+        +createSession(CreateSessionRequest): ResponseEntity<SessionResponseDTO>
+        +getMySessions(role: String): ResponseEntity<List<SessionResponseDTO>>
+        +getSession(sessionId: UUID): ResponseEntity<SessionResponseDTO>
+        +getSessionsBySport(sportType: SportType): ResponseEntity<List<SessionResponseDTO>>
+        +searchSessions(lat, lng, radius, sport, ageMin, ageMax, gender): ResponseEntity<List<SessionResponseDTO>>
+        +patchSession(sessionId: UUID, PatchSessionRequest): ResponseEntity<SessionResponseDTO>
+        +deleteSession(sessionId: UUID): ResponseEntity<Void>
+        --
+        record CreateSessionRequest(sportType, title, scheduledAt, endTime,\n  googlePlaceId, facilityName, facilityAddress,\n  facilityLatitude, facilityLongitude, ageMin, ageMax, maxPlayers)
+        record PatchSessionRequest(title, scheduledAt, endTime,\n  ageMin, ageMax, maxPlayers, genderPreference)
+    }
+
+    class RegistrationController <<@RestController\n/api/sessions>> {
+        -registrationService: RegistrationService
+        -userService: UserService
+        -sessionService: SessionService
+        -registrationMapper: RegistrationMapper
+        --
+        +joinSession(sessionId: UUID): ResponseEntity<RegistrationResponseDTO>
+        +leaveSession(sessionId: UUID): ResponseEntity<Void>
+        +getRegistrations(sessionId: UUID): ResponseEntity<List<RegistrationResponseDTO>>
+    }
+
+    class FacilityController <<@RestController\n/api/facilities>> {
+        -facilityService: FacilityService
+        --
+        +searchFacilities(lat: double, lng: double, radius: double): ResponseEntity<List<Facility>>
+    }
+
+    ' Controller → Service dependencies
+    AuthController         --> AuthProviderRegistry
+    AuthController         --> UserService
+    AuthController         --> JwtService
+    AuthController         --> UserMapper
+    UserController         --> UserService
+    UserController         --> UserMapper
+    SessionController      --> SessionService
+    SessionController      --> UserService
+    SessionController      --> SessionMapper
+    SessionController      --> RegistrationService
+    RegistrationController --> RegistrationService
+    RegistrationController --> UserService
+    RegistrationController --> SessionService
+    RegistrationController --> RegistrationMapper
+    FacilityController     --> FacilityService
+}
+
+' ╔══════════════════════════════════════════════════════════╗
+' ║  EXCEPTION HANDLING                                      ║
+' ╚══════════════════════════════════════════════════════════╝
+package "com.teamates.exception" #FDECEA {
+
+    class NotFoundException <<extends RuntimeException>> {
+        +NotFoundException(message: String)
+    }
+
+    class GlobalExceptionHandler <<@RestControllerAdvice>> {
+        +handleNotFound(ex: NotFoundException): ResponseEntity<ErrorResponse>
+        +handleIllegalArgument(ex: IllegalArgumentException): ResponseEntity<ErrorResponse>
+        +handleRuntimeException(ex: RuntimeException): ResponseEntity<ErrorResponse>
+    }
+
+    class ErrorResponse <<record>> {
+        +status: int
+        +message: String
+    }
+
+    NotFoundException       --|> RuntimeException
+    GlobalExceptionHandler  ..> ErrorResponse       : returns
+    GlobalExceptionHandler  ..> NotFoundException   : handles
+}
+
+@enduml
