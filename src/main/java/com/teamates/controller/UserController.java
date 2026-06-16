@@ -9,6 +9,7 @@ import com.teamates.exception.NotFoundException;
 import java.time.LocalDate;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +41,7 @@ public class UserController {
     }
 
     @PatchMapping
-    public ResponseEntity<UserResponseDTO> updateUser(@RequestBody UpdateUserRequest request) {
+    public ResponseEntity<UserResponseDTO> updateUser(@Valid @RequestBody UpdateUserRequest request) {
         User currentUser = userService.getCurrentUser();
         User updated = userService.updateUser(currentUser,
                 request.firstName(), request.lastName(), request.phone());
@@ -58,8 +59,13 @@ public class UserController {
 
 
     public record UpdateUserRequest(
+            @Size(max = 50, message = "First name must be under 50 characters")
             String firstName,
+
+            @Size(max = 50, message = "Last name must be under 50 characters")
             String lastName,
+
+            @Size(max = 20, message = "Phone must be under 20 characters")
             String phone
     ) {}
 
