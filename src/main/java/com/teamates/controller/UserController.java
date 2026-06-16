@@ -7,10 +7,14 @@ import com.teamates.dto.UserMapper;
 import com.teamates.dto.UserResponseDTO;
 import com.teamates.exception.NotFoundException;
 import java.time.LocalDate;
+
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 
 @RestController
 @RequestMapping("/api/users")
@@ -21,7 +25,7 @@ public class UserController {
     private final UserMapper userMapper;
 
     @PostMapping("/complete-profile")
-    public ResponseEntity<UserResponseDTO> completeProfile(@RequestBody CompleteProfileRequest request) {
+    public ResponseEntity<UserResponseDTO> completeProfile(@Valid @RequestBody CompleteProfileRequest request) {
         User currentUser = userService.getCurrentUser();
         User updated = userService.completeProfile(currentUser,
                 request.gender(), request.birthDate());
@@ -60,7 +64,11 @@ public class UserController {
     ) {}
 
     public record CompleteProfileRequest(
+            @NotNull(message = "Gender is required")
             Gender gender,
+
+            @NotNull(message = "Birth date is required")
+            @Past(message = "Birth date must be in the past")
             LocalDate birthDate
     ) {}
 }
