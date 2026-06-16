@@ -51,22 +51,7 @@ public class UserController {
     }
 
 
-    // TEMPORARY - remove before production
-    @PostMapping("/test-create")
-    public ResponseEntity<User> createTestUser(@RequestBody CreateTestUserRequest request) {
-        User user = new User();
-        user.setEmail(request.email());
-        user.setFirstName(request.firstName());
-        user.setLastName(request.lastName());
-        return ResponseEntity.ok(userService.saveUser(user));
-    }
 
-    // TEMPORARY - remove before production
-    public record CreateTestUserRequest(
-            String email,
-            String firstName,
-            String lastName
-    ) {}
 
     public record UpdateUserRequest(
             String firstName,
