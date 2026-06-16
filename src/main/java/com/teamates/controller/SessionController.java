@@ -105,6 +105,7 @@ public class SessionController {
     @PatchMapping("/{sessionId}")
     public ResponseEntity<SessionResponseDTO> patchSession(
             @PathVariable UUID sessionId,
+            @Valid
             @RequestBody PatchSessionRequest request) {
         User currentUser = userService.getCurrentUser();
         Session session = sessionService.patchSession(
@@ -123,12 +124,27 @@ public class SessionController {
     }
 
     public record PatchSessionRequest(
+            @Size(max = 100, message = "Title must be under 100 characters")
             String title,
+
+            @Future(message = "Session must be scheduled in the future")
             LocalDateTime scheduledAt,
+
+            @Future(message = "End time must be in the future")
             LocalDateTime endTime,
+
+            @Min(value = 15, message = "Minimum age is 15")
+            @Max(value = 99, message = "Maximum age is 99")
             Integer ageMin,
+
+            @Min(value = 15, message = "Minimum age is 15")
+            @Max(value = 99, message = "Maximum age is 99")
             Integer ageMax,
+
+            @Min(value = 2, message = "At least 2 players required")
+            @Max(value = 15, message = "Maximum 15 players allowed")
             Integer maxPlayers,
+
             String genderPreference
     ) {}
 
