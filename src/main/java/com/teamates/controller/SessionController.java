@@ -9,6 +9,7 @@ import com.teamates.dto.SessionMapper;
 import com.teamates.dto.SessionResponseDTO;
 import com.teamates.service.RegistrationService;
 import com.teamates.exception.NotFoundException;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +17,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import jakarta.validation.constraints.*;
 
 @RestController
 @RequestMapping("/api/sessions")
@@ -30,7 +32,7 @@ public class SessionController {
 
 
     @PostMapping
-    public ResponseEntity<SessionResponseDTO> createSession(@RequestBody CreateSessionRequest request) {
+    public ResponseEntity<SessionResponseDTO> createSession(@Valid @RequestBody CreateSessionRequest request) {
         User host = userService.getCurrentUser();
 
         Session session = sessionService.createSession(
@@ -142,17 +144,51 @@ public class SessionController {
 
 
     public record CreateSessionRequest(
+            @NotNull(message = "Sport type is required")
             SportType sportType,
+
+            @Size(max = 100, message = "Title must be under 100 characters")
             String title,
+
+            @NotNull(message = "Start time is required")
+            @Future(message = "Session must be scheduled in the future")
             LocalDateTime scheduledAt,
+
+            @NotNull(message = "End time is required")
+            @Future(message = "End time must be in the future")
             LocalDateTime endTime,
-            String googlePlaceId,
+
+            @NotNull(message = "Facility name is required")
+            @NotBlank(message = "Facility name cannot be blank")
             String facilityName,
+
+            @NotNull(message = "Facility address is required")
+            @NotBlank(message = "Facility address cannot be blank")
             String facilityAddress,
+
+            @NotNull(message = "Google Place ID is required")
+            @NotBlank(message = "Google Place ID cannot be blank")
+            String googlePlaceId,
+
+            @NotNull(message = "Latitude is required")
             BigDecimal facilityLatitude,
+
+            @NotNull(message = "Longitude is required")
             BigDecimal facilityLongitude,
+
+            @NotNull(message = "Minimum age is required")
+            @Min(value = 15, message = "Minimum age is 15")
+            @Max(value = 99, message = "Maximum age is 99")
             Integer ageMin,
+
+            @NotNull(message = "Maximum age is required")
+            @Min(value = 15, message = "Minimum age is 15")
+            @Max(value = 99, message = "Maximum age is 99")
             Integer ageMax,
+
+            @NotNull(message = "Max players is required")
+            @Min(value = 2, message = "At least 2 players required")
+            @Max(value = 15, message = "Maximum 15 players allowed")
             Integer maxPlayers
     ) {}
 
