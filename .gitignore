@@ -35,3 +35,7 @@ build/
 ### Eclipse ###
 src/main/resources/application.properties
 src/main/resources/application.properties.example
+
+# Frontend
+teamates-frontend/node_modules
+teamates-frontend/build
