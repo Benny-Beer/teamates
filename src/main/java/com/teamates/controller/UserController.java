@@ -40,6 +40,12 @@ public class UserController {
         return ResponseEntity.ok(userMapper.toDto(user));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<UserResponseDTO> getMe() {
+        User currentUser = userService.getCurrentUser();
+        return ResponseEntity.ok(userMapper.toDto(currentUser));
+    }
+
     @PatchMapping
     public ResponseEntity<UserResponseDTO> updateUser(@Valid @RequestBody UpdateUserRequest request) {
         User currentUser = userService.getCurrentUser();
