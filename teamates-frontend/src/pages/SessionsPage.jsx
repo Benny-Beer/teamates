@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { SPORT_TYPES } from '../constants/sports';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function SessionsPage() {
     const { currentUser } = useAuth();
@@ -30,7 +34,7 @@ function SessionsPage() {
             return true;
         })
         .filter(session => {
-            if (!sportFilter) return true;
+            if (!sportFilter || sportFilter === 'all') return true;
             return session.sportType === sportFilter;
         });
 
@@ -39,99 +43,95 @@ function SessionsPage() {
     return (
         <div className="max-w-2xl mx-auto p-8">
             <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">
+                <h1 className="text-2xl font-bold">
                     Welcome, {currentUser?.firstName}! 👋
                 </h1>
-                <button
-                    onClick={() => navigate('/sessions/create')}
-                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                <Button onClick={() => navigate('/sessions/create')}>
                     + Create Session
-                </button>
+                </Button>
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl shadow p-4 mb-6 flex flex-col gap-4">
-                <div className="flex items-center gap-6">
-                    <span className="text-sm font-medium text-gray-700">Show:</span>
-                    {['future', 'past', 'all'].map(option => (
-                        <label key={option} className="flex items-center gap-2 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="timeFilter"
-                                value={option}
-                                checked={timeFilter === option}
-                                onChange={e => setTimeFilter(e.target.value)}
-                                className="accent-blue-500"
-                            />
-                            <span className="text-sm text-gray-600 capitalize">{option}</span>
-                        </label>
-                    ))}
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <span className="text-sm font-medium text-gray-700">Sport:</span>
-                    <select
-                        value={sportFilter}
-                        onChange={e => setSportFilter(e.target.value)}
-                        className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">All Sports</option>
-                        {SPORT_TYPES.map(sport => (
-                            <option key={sport} value={sport}>{sport}</option>
+            <Card className="mb-6">
+                <CardContent className="pt-4 flex flex-col gap-4">
+                    {/* Time filter — radio buttons */}
+                    <div className="flex items-center gap-6">
+                        <span className="text-sm font-medium">Show:</span>
+                        {['future', 'past', 'all'].map(option => (
+                            <label key={option} className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="timeFilter"
+                                    value={option}
+                                    checked={timeFilter === option}
+                                    onChange={e => setTimeFilter(e.target.value)}
+                                    className="accent-primary"
+                                />
+                                <span className="text-sm text-muted-foreground capitalize">{option}</span>
+                            </label>
                         ))}
-                    </select>
-                </div>
-            </div>
+                    </div>
+
+                    {/* Sport filter — Shadcn Select */}
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium">Sport:</span>
+                        <Select value={sportFilter} onValueChange={setSportFilter}>
+                            <SelectTrigger className="w-48">
+                                <SelectValue placeholder="All Sports" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Sports</SelectItem>
+                                {SPORT_TYPES.map(sport => (
+                                    <SelectItem key={sport} value={sport}>{sport}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Sessions list */}
             <div className="flex flex-col gap-4">
                 {filteredSessions.length === 0 ? (
-                    <p className="text-gray-500">No sessions found.</p>
+                    <p className="text-muted-foreground">No sessions found.</p>
                 ) : (
                     filteredSessions.map(session => {
                         const isHost = session.hostId === currentUser?.userId;
                         return (
-                            <div
+                            <Card
                                 key={session.sessionId}
                                 onClick={() => navigate(`/sessions/${session.sessionId}`)}
-                                className={`rounded-xl shadow p-6 cursor-pointer hover:shadow-md transition border-l-4 ${
-                                    isHost
-                                        ? 'bg-blue-50 border-blue-400'
-                                        : 'bg-green-50 border-green-400'
+                                className={`cursor-pointer hover:shadow-md transition border-l-4 ${
+                                    isHost ? 'border-l-blue-400 bg-blue-50' : 'border-l-green-400 bg-green-50'
                                 }`}>
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h2 className="text-lg font-bold text-gray-800">
-                                            {session.title || session.sportType}
-                                        </h2>
-                                        <p className="text-gray-500 text-sm">{session.facilityName}</p>
-                                        <p className="text-gray-500 text-sm">
-                                            {new Date(session.scheduledAt).toLocaleString()}
-                                        </p>
+                                <CardContent className="pt-4">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h2 className="text-lg font-bold">
+                                                {session.title || session.sportType}
+                                            </h2>
+                                            <p className="text-muted-foreground text-sm">{session.facilityName}</p>
+                                            <p className="text-muted-foreground text-sm">
+                                                {new Date(session.scheduledAt).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <Badge variant="secondary">
+                                                {session.currentPlayers}/{session.maxPlayers}
+                                            </Badge>
+                                            {isHost ? (
+                                                <span className="text-xs font-medium text-blue-600">👑 Host</span>
+                                            ) : (
+                                                <span className="text-xs font-medium text-green-600">✓ Joined</span>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col items-end gap-2">
-                                        <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm">
-                                            {session.currentPlayers}/{session.maxPlayers}
-                                        </span>
-                                        {isHost ? (
-                                            <span className="text-xs font-medium text-blue-600">
-                                                👑 Host
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs font-medium text-green-600">
-                                                ✓ Joined
-                                            </span>
-                                        )}
+                                    <div className="mt-2 flex gap-2">
+                                        <Badge variant="outline">{session.sportType}</Badge>
+                                        <Badge variant="outline">Age {session.ageMin}–{session.ageMax}</Badge>
                                     </div>
-                                </div>
-                                <div className="mt-2 flex gap-2">
-                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                        {session.sportType}
-                                    </span>
-                                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                        Age {session.ageMin}–{session.ageMax}
-                                    </span>
-                                </div>
-                            </div>
+                                </CardContent>
+                            </Card>
                         );
                     })
                 )}

@@ -49,6 +49,24 @@ function SessionDetailPage() {
     const isFull = session?.currentPlayers >= session?.maxPlayers;
     const othersRegistered = session?.currentPlayers > 1;
 
+    const calculateAge = (birthDate) => {
+        if (!birthDate) return null;
+        const today = new Date();
+        const birth = new Date(birthDate);
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        return age;
+    };
+
+    const userAge = calculateAge(currentUser?.birthDate);
+    const ageEligible = userAge >= session?.ageMin && userAge <= session?.ageMax;
+    const genderEligible = !session?.genderPreference ||
+        session?.genderPreference === currentUser?.gender;
+    const isEligible = ageEligible && genderEligible;
+
     const handleStartEdit = () => {
         setEditTitle(session.title || '');
         setEditScheduledAt(session.scheduledAt ? session.scheduledAt.slice(0, 16) : '');
@@ -284,6 +302,11 @@ function SessionDetailPage() {
                                 className="w-full">
                                 {actionLoading ? 'Leaving...' : 'Leave Session'}
                             </Button>
+                        ) : !isEligible ? (
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
+                                {!ageEligible && <p>❌ You don't meet the age requirement (age {session.ageMin}–{session.ageMax})</p>}
+                                {!genderEligible && <p>❌ This session is for {session.genderPreference} players only</p>}
+                            </div>
                         ) : (
                             <Button
                                 onClick={handleJoin}

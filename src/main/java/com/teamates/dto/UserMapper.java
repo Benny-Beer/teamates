@@ -32,6 +32,8 @@ public class UserMapper {
                 user.getUserId(),
                 user.getFirstName(),
                 user.getLastName(),
+                user.getGender() != null ? user.getGender().name() : null,
+                user.getBirthDate(),
                 user.getGender() != null && user.getBirthDate() != null
         );
     }

@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function CompleteProfilePage() {
     const { login } = useAuth();
@@ -35,46 +39,45 @@ function CompleteProfilePage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-            <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-sm">
-                <h1 className="text-2xl font-bold text-gray-800 mb-2">Complete your profile</h1>
-                <p className="text-gray-500 mb-6">This is a one-time setup.</p>
+        <div className="min-h-screen bg-muted flex items-center justify-center">
+            <Card className="w-full max-w-sm">
+                <CardHeader>
+                    <CardTitle className="text-2xl">Complete your profile</CardTitle>
+                    <p className="text-muted-foreground text-sm">This is a one-time setup.</p>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Gender</label>
+                            <Select value={gender} onValueChange={setGender} required>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select gender" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="MALE">Male</SelectItem>
+                                    <SelectItem value="FEMALE">Female</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                        <select
-                            value={gender}
-                            onChange={e => setGender(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required>
-                            <option value="">Select gender</option>
-                            <option value="MALE">Male</option>
-                            <option value="FEMALE">Female</option>
-                        </select>
-                    </div>
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Birth Date</label>
+                            <Input
+                                type="date"
+                                value={birthDate}
+                                onChange={e => setBirthDate(e.target.value)}
+                                required
+                            />
+                        </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
-                        <input
-                            type="date"
-                            value={birthDate}
-                            onChange={e => setBirthDate(e.target.value)}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            required
-                        />
-                    </div>
+                        {error && <p className="text-destructive text-sm">{error}</p>}
 
-                    {error && <p className="text-red-500 text-sm">{error}</p>}
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="bg-blue-500 text-white rounded-lg py-2 font-medium hover:bg-blue-600 disabled:opacity-50">
-                        {loading ? 'Saving...' : 'Continue'}
-                    </button>
-                </form>
-            </div>
+                        <Button type="submit" disabled={loading} className="w-full">
+                            {loading ? 'Saving...' : 'Continue'}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 }
