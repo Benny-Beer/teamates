@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
+import java.time.Period;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +23,6 @@ public class RegistrationService {
 
     public Registration joinSession(User user, UUID sessionId) {
 
-
         if (!userService.isProfileComplete(user)) {
             throw new IllegalArgumentException(
                     "Please complete your profile before joining a session");
@@ -30,6 +31,20 @@ public class RegistrationService {
         Session session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new NotFoundException("Session not found"));
 
+        // check age eligibility
+        int userAge = Period.between(user.getBirthDate(), LocalDate.now()).getYears();
+        if (userAge < session.getAgeMin() || userAge > session.getAgeMax()) {
+            throw new IllegalArgumentException(
+                    "You don't meet the age requirement for this session (age " +
+                            session.getAgeMin() + "–" + session.getAgeMax() + ")");
+        }
+
+        // check gender eligibility
+        if (session.getGenderPreference() != null &&
+                !session.getGenderPreference().equals(user.getGender().name())) {
+            throw new IllegalArgumentException(
+                    "This session is for " + session.getGenderPreference() + " players only");
+        }
 
         // check if already registered
         if (registrationRepository.existsBySessionSessionIdAndUserUserId(

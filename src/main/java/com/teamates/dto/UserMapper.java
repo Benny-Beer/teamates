@@ -13,6 +13,8 @@ public class UserMapper {
                 user.getLastName(),
                 user.getPhone(),
                 user.getGender(),
+                user.getEmail(),
+                user.getBirthDate(),
                 user.getGender() != null && user.getBirthDate() != null
         );
     }

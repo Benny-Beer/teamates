@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.jsx';
 
 function LoginPage() {
     const { login, currentUser } = useAuth();
@@ -38,7 +38,7 @@ function LoginPage() {
 
         if (window.google) {
             window.google.accounts.id.initialize({
-                client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,                callback: handleGoogleResponse
+                client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,                callback: handleGoogleResponse
             });
             window.google.accounts.id.renderButton(
                 document.getElementById('g_id_signin_btn'),

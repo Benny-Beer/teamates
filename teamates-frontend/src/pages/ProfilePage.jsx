@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 
 function ProfilePage() {
     const { currentUser, login } = useAuth();
+    const [fullUser, setFullUser] = useState(null);
     const [editing, setEditing] = useState(false);
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -11,12 +12,27 @@ function ProfilePage() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (currentUser) {
-            setFirstName(currentUser.firstName || '');
-            setLastName(currentUser.lastName || '');
-            setPhone(currentUser.phone || '');
+        fetch('/api/users/me', { credentials: 'include' })
+            .then(r => r.json())
+            .then(data => {
+                setFullUser(data);
+                setFirstName(data.firstName || '');
+                setLastName(data.lastName || '');
+                setPhone(data.phone || '');
+            });
+    }, []);
+
+    const calculateAge = (birthDate) => {
+        if (!birthDate) return null;
+        const today = new Date();
+        const birth = new Date(birthDate);
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age--;
         }
-    }, [currentUser]);
+        return age;
+    };
 
     const handleSave = async () => {
         setLoading(true);
@@ -38,17 +54,20 @@ function ProfilePage() {
         }
 
         login(data);
+        setFullUser(data);
         setEditing(false);
         setLoading(false);
     };
 
     const handleCancel = () => {
-        setFirstName(currentUser.firstName || '');
-        setLastName(currentUser.lastName || '');
-        setPhone(currentUser.phone || '');
+        setFirstName(fullUser?.firstName || '');
+        setLastName(fullUser?.lastName || '');
+        setPhone(fullUser?.phone || '');
         setEditing(false);
         setError('');
     };
+
+    if (!fullUser) return <div className="p-8">Loading...</div>;
 
     return (
         <div className="max-w-lg mx-auto p-8">
@@ -56,6 +75,33 @@ function ProfilePage() {
 
             <div className="bg-white rounded-xl shadow p-6">
                 <div className="flex flex-col gap-4">
+
+                    {/* Read-only fields */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <p className="text-gray-800">{fullUser.email}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Synced from Google</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Birth Date</label>
+                            <p className="text-gray-800">{fullUser.birthDate || '—'}</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                            <p className="text-gray-800">{calculateAge(fullUser.birthDate) || '—'}</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                        <p className="text-gray-800">{fullUser.gender || '—'}</p>
+                    </div>
+
+                    <hr className="border-gray-200" />
+
+                    {/* Editable fields */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                         {editing ? (
@@ -66,7 +112,7 @@ function ProfilePage() {
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         ) : (
-                            <p className="text-gray-800">{currentUser?.firstName}</p>
+                            <p className="text-gray-800">{fullUser.firstName}</p>
                         )}
                     </div>
 
@@ -80,7 +126,7 @@ function ProfilePage() {
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         ) : (
-                            <p className="text-gray-800">{currentUser?.lastName}</p>
+                            <p className="text-gray-800">{fullUser.lastName}</p>
                         )}
                     </div>
 
@@ -95,13 +141,8 @@ function ProfilePage() {
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         ) : (
-                            <p className="text-gray-800">{currentUser?.phone || '—'}</p>
+                            <p className="text-gray-800">{fullUser.phone || '—'}</p>
                         )}
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                        <p className="text-gray-800">{currentUser?.gender || '—'}</p>
                     </div>
 
                     {error && <p className="text-red-500 text-sm">{error}</p>}

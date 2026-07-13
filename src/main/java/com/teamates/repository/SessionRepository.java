@@ -10,12 +10,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-// TODO: find sessions by location radius and sport type
-// Parameters: lat, lng, radiusKm, sportType
 @Repository
 public interface SessionRepository extends JpaRepository<Session, UUID> {
+
     List<Session> findByHostUserId(UUID hostUserId);
+
     List<Session> findBySportType(SportType sportType);
+
     @Query("SELECT COUNT(s) > 0 FROM Session s WHERE s.host.userId = :hostId AND s.scheduledAt < :endTime AND s.endTime > :scheduledAt")
     boolean existsOverlappingSessionForHost(
             @Param("hostId") UUID hostId,
@@ -47,9 +48,8 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
     AND s.scheduled_at > NOW()
     AND s.scheduled_at < :maxDate
     AND (:sport IS NULL OR s.sport_type = :sport)
-    AND (:ageMin IS NULL OR s.age_min >= :ageMin)
-    AND (:ageMax IS NULL OR s.age_max <= :ageMax)
-    AND (:gender IS NULL OR s.gender_preference = :gender OR s.gender_preference IS NULL)
+    AND (:userAge IS NULL OR (s.age_min <= :userAge AND s.age_max >= :userAge))
+    AND (:gender IS NULL OR s.gender_preference IS NULL OR s.gender_preference = :gender)
     AND (
         SELECT COUNT(*) FROM registrations r
         WHERE r.session_id = s.session_id
@@ -60,10 +60,8 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
             @Param("lng") double lng,
             @Param("radiusMeters") double radiusMeters,
             @Param("sport") String sport,
-            @Param("ageMin") Integer ageMin,
-            @Param("ageMax") Integer ageMax,
+            @Param("userAge") Integer userAge,
             @Param("gender") String gender,
             @Param("maxDate") java.time.LocalDateTime maxDate
     );
 }
-

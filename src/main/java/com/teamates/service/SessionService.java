@@ -21,6 +21,8 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.PrecisionModel;
+import java.time.LocalDate;
+import java.time.Period;
 
 @Service
 @RequiredArgsConstructor
@@ -174,8 +176,18 @@ public class SessionService {
     public List<Session> searchSessions(double lat, double lng, double radiusMeters,
                                         String sport, Integer ageMin, Integer ageMax,
                                         String gender) {
+        // get current user's profile
+        User currentUser = userService.getCurrentUser();
+
+        // calculate user's age
+        int userAge = Period.between(currentUser.getBirthDate(), LocalDate.now()).getYears();
+
+        // use user's gender
+        String userGender = currentUser.getGender() != null ? currentUser.getGender().name() : null;
+
         LocalDateTime maxDate = LocalDateTime.now().plusMonths(3);
+
         return sessionRepository.searchSessions(
-                lat, lng, radiusMeters, sport, ageMin, ageMax, gender, maxDate);
+                lat, lng, radiusMeters, sport, userAge, userGender, maxDate);
     }
 }
