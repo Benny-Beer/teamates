@@ -119,6 +119,8 @@ public class UserService {
                 handleHostDeletion(session, reg, userId);
             } else {
                 registrationRepository.delete(reg);
+                sessionRepository.decrementPlayerCount(reg.getSession().getSessionId());
+
             }
         }
 
@@ -143,6 +145,8 @@ public class UserService {
             session.setHost(newHost);
             sessionRepository.save(session);
             registrationRepository.delete(hostReg);
+            sessionRepository.decrementPlayerCount(session.getSessionId());
+
         }
     }
 }

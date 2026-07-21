@@ -9,6 +9,8 @@ import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public interface SessionRepository extends JpaRepository<Session, UUID> {
@@ -64,4 +66,25 @@ public interface SessionRepository extends JpaRepository<Session, UUID> {
             @Param("gender") String gender,
             @Param("maxDate") java.time.LocalDateTime maxDate
     );
+
+    @Modifying
+    @Transactional
+    @Query(value = """
+    UPDATE sessions
+    SET current_players = current_players + 1
+    WHERE session_id = :sessionId
+    AND current_players < max_players
+    """, nativeQuery = true)
+    int incrementPlayerCount(@Param("sessionId") UUID sessionId);
+
+    @Modifying
+    @Transactional
+    @Query(value = """
+    UPDATE sessions
+    SET current_players = current_players - 1
+    WHERE session_id = :sessionId
+    AND current_players > 0
+    """, nativeQuery = true)
+    int decrementPlayerCount(@Param("sessionId") UUID sessionId);
 }
+

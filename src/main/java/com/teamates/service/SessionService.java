@@ -23,6 +23,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.PrecisionModel;
 import java.time.LocalDate;
 import java.time.Period;
+import org.springframework.dao.DataIntegrityViolationException;
 
 @Service
 @RequiredArgsConstructor
@@ -86,8 +87,14 @@ public class SessionService {
         session.setAgeMin(ageMin);
         session.setAgeMax(ageMax);
         session.setMaxPlayers(maxPlayers);
+        session.setCurrentPlayers(1);
 
-        Session savedSession = sessionRepository.save(session); // ← save session first
+        Session savedSession;
+        try {
+            savedSession = sessionRepository.saveAndFlush(session);
+        } catch (DataIntegrityViolationException e) {
+            throw new IllegalArgumentException("Facility is already booked during this time");
+        }
 
         // auto-register host
         Registration hostRegistration = new Registration();

@@ -52,15 +52,16 @@ public class RegistrationService {
             throw new IllegalArgumentException("User already registered to this session");
         }
 
-        // check if session is full
-        int currentPlayers = registrationRepository.countBySessionSessionId(sessionId);
-        if (currentPlayers >= session.getMaxPlayers()) {
-            throw new IllegalArgumentException("Session is full");
-        }
 
         Registration registration = new Registration();
         registration.setSession(session);
         registration.setUser(user);
+
+        // check if session is full
+        int affected = sessionRepository.incrementPlayerCount(sessionId);
+        if (affected == 0) {
+            throw new IllegalArgumentException("Session is full");
+        }
 
         return registrationRepository.save(registration);
     }
@@ -72,6 +73,7 @@ public class RegistrationService {
                 .orElseThrow(() -> new NotFoundException("Registration not found"));
 
         registrationRepository.delete(registration);
+        sessionRepository.decrementPlayerCount(sessionId);
     }
 
     public List<Registration> getSessionRegistrations(UUID sessionId) {

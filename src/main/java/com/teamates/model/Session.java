@@ -52,6 +52,9 @@ public class Session {
     @Column(name = "max_players", nullable = false)
     private Integer maxPlayers;
 
+    @Column(name = "current_players", nullable = false)
+    private Integer currentPlayers = 0;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
 }
