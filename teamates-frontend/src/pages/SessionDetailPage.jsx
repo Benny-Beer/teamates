@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import API_URL from '../api/config';
 
 function SessionDetailPage() {
     const { sessionId } = useParams();
@@ -30,8 +31,8 @@ function SessionDetailPage() {
 
     const fetchSession = async () => {
         const [sessionRes, regRes] = await Promise.all([
-            fetch(`/api/sessions/${sessionId}`, { credentials: 'include' }),
-            fetch(`/api/sessions/${sessionId}/registrations`, { credentials: 'include' })
+            fetch(`${API_URL}/api/sessions/${sessionId}`, { credentials: 'include' }),
+            fetch(`${API_URL}/api/sessions/${sessionId}/registrations`, { credentials: 'include' })
         ]);
         const sessionData = await sessionRes.json();
         const regData = await regRes.json();
@@ -81,7 +82,7 @@ function SessionDetailPage() {
     const handleSaveEdit = async () => {
         setEditSaving(true);
         setEditError('');
-        const res = await fetch(`/api/sessions/${sessionId}`, {
+        const res = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
             method: 'PATCH',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
@@ -107,7 +108,7 @@ function SessionDetailPage() {
     const handleJoin = async () => {
         setActionLoading(true);
         setError('');
-        const res = await fetch(`/api/sessions/${sessionId}/join`, {
+        const res = await fetch(`${API_URL}/api/sessions/${sessionId}/join`, {
             method: 'POST',
             credentials: 'include'
         });
@@ -123,7 +124,7 @@ function SessionDetailPage() {
     const handleLeave = async () => {
         setActionLoading(true);
         setError('');
-        const res = await fetch(`/api/sessions/${sessionId}/leave`, {
+        const res = await fetch(`${API_URL}/api/sessions/${sessionId}/leave`, {
             method: 'DELETE',
             credentials: 'include'
         });
@@ -139,7 +140,7 @@ function SessionDetailPage() {
     const handleDelete = async () => {
         if (!window.confirm('Are you sure you want to delete this session?')) return;
         setActionLoading(true);
-        const res = await fetch(`/api/sessions/${sessionId}`, {
+        const res = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
             method: 'DELETE',
             credentials: 'include'
         });
@@ -164,7 +165,6 @@ function SessionDetailPage() {
                 ← Back to sessions
             </Button>
 
-            {/* Session info */}
             <Card className="mb-6">
                 <CardHeader>
                     <div className="flex justify-between items-start">
@@ -189,7 +189,6 @@ function SessionDetailPage() {
                         <p>⚤ {session.genderPreference} only</p>
                     )}
 
-                    {/* Edit form */}
                     {editing && (
                         <>
                             <Separator className="my-2" />
@@ -274,7 +273,6 @@ function SessionDetailPage() {
                         </>
                     )}
 
-                    {/* Action buttons */}
                     <div className="mt-4 flex flex-col gap-2">
                         {error && <p className="text-destructive text-sm">{error}</p>}
                         {isHost ? (
@@ -319,7 +317,6 @@ function SessionDetailPage() {
                 </CardContent>
             </Card>
 
-            {/* Players list */}
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg">Players ({registrations.length})</CardTitle>

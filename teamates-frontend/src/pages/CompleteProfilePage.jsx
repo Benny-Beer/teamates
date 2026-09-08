@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import API_URL from '../api/config';
 
 function CompleteProfilePage() {
     const { login } = useAuth();
@@ -19,7 +20,7 @@ function CompleteProfilePage() {
         setLoading(true);
         setError('');
 
-        const res = await fetch('/api/users/complete-profile', {
+        const res = await fetch(`${API_URL}/api/users/complete-profile`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },

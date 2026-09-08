@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import API_URL from '../api/config';
 
 const AuthContext = createContext(null);
 
@@ -7,8 +8,7 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // on app load — check if we have a valid session
-        fetch('/api/users/me', {
+        fetch(`${API_URL}/api/users/me`, {
             credentials: 'include'
         })
             .then(r => {
@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
     };
 
     const logout = async () => {
-        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+        await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' });
         setCurrentUser(null);
     };
 

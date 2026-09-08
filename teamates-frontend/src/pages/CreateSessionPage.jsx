@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import API_URL from '../api/config';
 
 function CreateSessionPage() {
     const navigate = useNavigate();
@@ -38,7 +39,7 @@ function CreateSessionPage() {
         setError('');
 
         const res = await fetch(
-            `/api/facilities/search?lat=${selectedPlace.lat}&lng=${selectedPlace.lng}&radius=${radius}&sport=${sportType}`,
+            `${API_URL}/api/facilities/search?lat=${selectedPlace.lat}&lng=${selectedPlace.lng}&radius=${radius}&sport=${sportType}`,
             { credentials: 'include' }
         );
         const data = await res.json();
@@ -58,7 +59,7 @@ function CreateSessionPage() {
         setLoading(true);
         setError('');
 
-        const res = await fetch('/api/sessions', {
+        const res = await fetch(`${API_URL}/api/sessions`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
@@ -93,7 +94,6 @@ function CreateSessionPage() {
         <div className="max-w-2xl mx-auto p-8">
             <h1 className="text-2xl font-bold mb-6">Create Session</h1>
 
-            {/* Step 1 — Find a facility */}
             <Card className="mb-6">
                 <CardHeader>
                     <CardTitle className="text-lg">Step 1 — Find a facility</CardTitle>
@@ -143,7 +143,6 @@ function CreateSessionPage() {
                         {searchLoading ? 'Searching...' : 'Search Facilities'}
                     </Button>
 
-                    {/* Facility results */}
                     {facilities.length > 0 && (
                         <div className="flex flex-col gap-2">
                             <p className="text-sm text-muted-foreground">
@@ -167,7 +166,6 @@ function CreateSessionPage() {
                 </CardContent>
             </Card>
 
-            {/* Step 2 — Session details */}
             {selectedFacility && (
                 <Card>
                     <CardHeader>

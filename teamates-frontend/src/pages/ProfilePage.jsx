@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import API_URL from '../api/config';
 
 function ProfilePage() {
     const { currentUser, login } = useAuth();
@@ -16,7 +17,7 @@ function ProfilePage() {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        fetch('/api/users/me', { credentials: 'include' })
+        fetch(`${API_URL}/api/users/me`, { credentials: 'include' })
             .then(r => r.json())
             .then(data => {
                 setFullUser(data);
@@ -42,7 +43,7 @@ function ProfilePage() {
         setLoading(true);
         setError('');
 
-        const res = await fetch('/api/users', {
+        const res = await fetch(`${API_URL}/api/users`, {
             method: 'PATCH',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
@@ -83,7 +84,6 @@ function ProfilePage() {
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4">
 
-                    {/* Read-only fields */}
                     <div>
                         <label className="block text-sm font-medium mb-1">Email</label>
                         <p className="text-sm">{fullUser.email}</p>
@@ -108,7 +108,6 @@ function ProfilePage() {
 
                     <Separator />
 
-                    {/* Editable fields */}
                     <div>
                         <label className="block text-sm font-medium mb-1">First Name</label>
                         {editing ? (

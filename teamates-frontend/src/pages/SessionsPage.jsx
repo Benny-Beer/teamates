@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import API_URL from '../api/config';
 
 function SessionsPage() {
     const { currentUser } = useAuth();
@@ -16,7 +17,7 @@ function SessionsPage() {
     const [sportFilter, setSportFilter] = useState('');
 
     useEffect(() => {
-        fetch('/api/sessions/my', { credentials: 'include' })
+        fetch(`${API_URL}/api/sessions/my`, { credentials: 'include' })
             .then(r => r.json())
             .then(data => {
                 setSessions(data);
@@ -51,10 +52,8 @@ function SessionsPage() {
                 </Button>
             </div>
 
-            {/* Filters */}
             <Card className="mb-6">
                 <CardContent className="pt-4 flex flex-col gap-4">
-                    {/* Time filter — radio buttons */}
                     <div className="flex items-center gap-6">
                         <span className="text-sm font-medium">Show:</span>
                         {['future', 'past', 'all'].map(option => (
@@ -72,7 +71,6 @@ function SessionsPage() {
                         ))}
                     </div>
 
-                    {/* Sport filter — Shadcn Select */}
                     <div className="flex items-center gap-3">
                         <span className="text-sm font-medium">Sport:</span>
                         <Select value={sportFilter} onValueChange={setSportFilter}>
@@ -90,7 +88,6 @@ function SessionsPage() {
                 </CardContent>
             </Card>
 
-            {/* Sessions list */}
             <div className="flex flex-col gap-4">
                 {filteredSessions.length === 0 ? (
                     <p className="text-muted-foreground">No sessions found.</p>

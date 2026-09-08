@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import API_URL from '../api/config';
 
 function SearchSessionsPage() {
     const navigate = useNavigate();
@@ -27,7 +28,7 @@ function SearchSessionsPage() {
         setLoading(true);
         setError('');
 
-        let url = `/api/sessions/search?lat=${selectedPlace.lat}&lng=${selectedPlace.lng}&radius=${radius}`;
+        let url = `${API_URL}/api/sessions/search?lat=${selectedPlace.lat}&lng=${selectedPlace.lng}&radius=${radius}`;
         if (sportType && sportType !== 'all') url += `&sport=${sportType}`;
 
         const res = await fetch(url, { credentials: 'include' });
@@ -41,7 +42,6 @@ function SearchSessionsPage() {
         <div className="max-w-2xl mx-auto p-8">
             <h1 className="text-2xl font-bold mb-6">Browse Sessions</h1>
 
-            {/* Search filters */}
             <Card className="mb-6">
                 <CardHeader>
                     <CardTitle className="text-lg">Search Filters</CardTitle>
@@ -90,7 +90,6 @@ function SearchSessionsPage() {
                 </CardContent>
             </Card>
 
-            {/* Results */}
             {searched && (
                 <div className="flex flex-col gap-4">
                     {sessions.length === 0 ? (
