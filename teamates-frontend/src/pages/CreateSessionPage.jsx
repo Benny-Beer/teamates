@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import API_URL from '../api/config';
 
 function CreateSessionPage() {
@@ -23,6 +24,7 @@ function CreateSessionPage() {
     const [ageMin, setAgeMin] = useState(15);
     const [ageMax, setAgeMax] = useState(99);
     const [maxPlayers, setMaxPlayers] = useState(10);
+    const [genderPreference, setGenderPreference] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -56,38 +58,52 @@ function CreateSessionPage() {
             setError('Please select a facility');
             return;
         }
+        if (scheduledAt && endTime && endTime <= scheduledAt) {
+            setError('End time must be after start time');
+            return;
+        }
+        if (ageMin > ageMax) {
+            setError('Minimum age cannot be greater than maximum age');
+            return;
+        }
         setLoading(true);
         setError('');
 
-        const res = await fetch(`${API_URL}/api/sessions`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                sportType,
-                title,
-                scheduledAt,
-                endTime,
-                googlePlaceId: selectedFacility.googlePlaceId,
-                facilityName: selectedFacility.name,
-                facilityAddress: selectedFacility.address,
-                facilityLatitude: selectedFacility.latitude,
-                facilityLongitude: selectedFacility.longitude,
-                ageMin,
-                ageMax,
-                maxPlayers
-            })
-        });
+        try {
+            const res = await fetch(`${API_URL}/api/sessions`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sportType,
+                    title,
+                    scheduledAt,
+                    endTime,
+                    googlePlaceId: selectedFacility.googlePlaceId,
+                    facilityName: selectedFacility.name,
+                    facilityAddress: selectedFacility.address,
+                    facilityLatitude: selectedFacility.latitude,
+                    facilityLongitude: selectedFacility.longitude,
+                    ageMin,
+                    ageMax,
+                    maxPlayers,
+                    genderPreference: genderPreference || null
+                })
+            });
 
-        const data = await res.json();
+            const data = await res.json();
 
-        if (!res.ok) {
-            setError(data.message);
+            if (!res.ok) {
+                setError(data.message);
+                setLoading(false);
+                return;
+            }
+
+            navigate('/sessions');
+        } catch {
+            setError('Network error. Please try again.');
             setLoading(false);
-            return;
         }
-
-        navigate('/sessions');
     };
 
     return (
@@ -229,6 +245,20 @@ function CreateSessionPage() {
                                     min="2" max="15"
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium mb-1">Gender preference (optional)</label>
+                            <Select value={genderPreference} onValueChange={setGenderPreference}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Any gender" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="">Any gender</SelectItem>
+                                    <SelectItem value="MALE">Male only</SelectItem>
+                                    <SelectItem value="FEMALE">Female only</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {error && (

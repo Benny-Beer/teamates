@@ -8,10 +8,11 @@ import { Separator } from '@/components/ui/separator';
 import API_URL from '../api/config';
 
 function ProfilePage() {
-    const { currentUser, login } = useAuth();
+    const { currentUser, login, logout } = useAuth();
     const navigate = useNavigate();
     const [fullUser, setFullUser] = useState(null);
     const [editing, setEditing] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [phone, setPhone] = useState('');
@@ -64,6 +65,23 @@ function ProfilePage() {
         setFullUser(data);
         setEditing(false);
         setLoading(false);
+    };
+
+    const handleDeleteAccount = async () => {
+        if (!window.confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
+        setDeleteLoading(true);
+        const res = await fetch(`${API_URL}/api/users`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        if (res.ok) {
+            await logout();
+            navigate('/login');
+        } else {
+            const data = await res.json();
+            setError(data.message);
+            setDeleteLoading(false);
+        }
     };
 
     const handleCancel = () => {
@@ -185,6 +203,16 @@ function ProfilePage() {
                     </div>
                 </CardContent>
             </Card>
+
+            <div className="mt-6">
+                <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteLoading}>
+                    {deleteLoading ? 'Deleting...' : 'Delete Account'}
+                </Button>
+            </div>
         </div>
     );
 }

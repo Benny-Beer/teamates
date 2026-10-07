@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import API_URL from '../api/config';
 
 function SessionDetailPage() {
@@ -26,6 +27,7 @@ function SessionDetailPage() {
     const [editAgeMin, setEditAgeMin] = useState('');
     const [editAgeMax, setEditAgeMax] = useState('');
     const [editMaxPlayers, setEditMaxPlayers] = useState('');
+    const [editGenderPreference, setEditGenderPreference] = useState('');
     const [editSaving, setEditSaving] = useState(false);
     const [editError, setEditError] = useState('');
 
@@ -62,11 +64,12 @@ function SessionDetailPage() {
         return age;
     };
 
+    const profileComplete = currentUser?.isProfileComplete;
     const userAge = calculateAge(currentUser?.birthDate);
-    const ageEligible = userAge >= session?.ageMin && userAge <= session?.ageMax;
+    const ageEligible = userAge !== null && userAge >= session?.ageMin && userAge <= session?.ageMax;
     const genderEligible = !session?.genderPreference ||
         session?.genderPreference === currentUser?.gender;
-    const isEligible = ageEligible && genderEligible;
+    const isEligible = profileComplete && ageEligible && genderEligible;
 
     const handleStartEdit = () => {
         setEditTitle(session.title || '');
@@ -75,11 +78,18 @@ function SessionDetailPage() {
         setEditAgeMin(session.ageMin || '');
         setEditAgeMax(session.ageMax || '');
         setEditMaxPlayers(session.maxPlayers || '');
+        setEditGenderPreference(session.genderPreference || '');
         setEditError('');
         setEditing(true);
     };
 
     const handleSaveEdit = async () => {
+        const effectiveMin = editAgeMin ? Number(editAgeMin) : session.ageMin;
+        const effectiveMax = editAgeMax ? Number(editAgeMax) : session.ageMax;
+        if (effectiveMin > effectiveMax) {
+            setEditError('Minimum age cannot be greater than maximum age');
+            return;
+        }
         setEditSaving(true);
         setEditError('');
         const res = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
@@ -93,6 +103,7 @@ function SessionDetailPage() {
                 ageMin: editAgeMin ? Number(editAgeMin) : null,
                 ageMax: editAgeMax ? Number(editAgeMax) : null,
                 maxPlayers: editMaxPlayers ? Number(editMaxPlayers) : null,
+                genderPreference: editGenderPreference || null,
             })
         });
         if (res.ok) {
@@ -122,6 +133,7 @@ function SessionDetailPage() {
     };
 
     const handleLeave = async () => {
+        if (!window.confirm('Are you sure you want to leave this session?')) return;
         setActionLoading(true);
         setError('');
         const res = await fetch(`${API_URL}/api/sessions/${sessionId}/leave`, {
@@ -160,9 +172,9 @@ function SessionDetailPage() {
         <div className="max-w-2xl mx-auto p-8">
             <Button
                 variant="ghost"
-                onClick={() => navigate('/sessions')}
+                onClick={() => navigate(-1)}
                 className="mb-4 pl-0">
-                ← Back to sessions
+                ← Back
             </Button>
 
             <Card className="mb-6">
@@ -254,6 +266,19 @@ function SessionDetailPage() {
                                         />
                                     </div>
                                 </div>
+                                <div>
+                                    <label className="text-sm font-medium text-foreground mb-1 block">Gender preference</label>
+                                    <Select value={editGenderPreference} onValueChange={setEditGenderPreference} disabled={othersRegistered}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Any gender" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="">Any gender</SelectItem>
+                                            <SelectItem value="MALE">Male only</SelectItem>
+                                            <SelectItem value="FEMALE">Female only</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
                                 {editError && <p className="text-destructive text-sm">{editError}</p>}
                                 <div className="flex gap-2">
                                     <Button
@@ -302,8 +327,9 @@ function SessionDetailPage() {
                             </Button>
                         ) : !isEligible ? (
                             <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm">
-                                {!ageEligible && <p>❌ You don't meet the age requirement (age {session.ageMin}–{session.ageMax})</p>}
-                                {!genderEligible && <p>❌ This session is for {session.genderPreference} players only</p>}
+                                {!profileComplete && <p>❌ Complete your profile to join sessions</p>}
+                                {profileComplete && !ageEligible && <p>❌ You don't meet the age requirement (age {session.ageMin}–{session.ageMax})</p>}
+                                {profileComplete && !genderEligible && <p>❌ This session is for {session.genderPreference} players only</p>}
                             </div>
                         ) : (
                             <Button

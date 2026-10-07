@@ -48,7 +48,8 @@ public class SessionController {
                 request.facilityLongitude(),
                 request.ageMin(),
                 request.ageMax(),
-                request.maxPlayers()
+                request.maxPlayers(),
+                request.genderPreference()
         );
         int currentPlayers = registrationService.countPlayers(session.getSessionId());
         return ResponseEntity.ok(sessionMapper.toDto(session, currentPlayers));
@@ -205,7 +206,9 @@ public class SessionController {
             @NotNull(message = "Max players is required")
             @Min(value = 2, message = "At least 2 players required")
             @Max(value = 15, message = "Maximum 15 players allowed")
-            Integer maxPlayers
+            Integer maxPlayers,
+
+            String genderPreference
     ) {}
 
 

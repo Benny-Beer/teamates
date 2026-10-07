@@ -20,9 +20,10 @@ function SessionsPage() {
         fetch(`${API_URL}/api/sessions/my`, { credentials: 'include' })
             .then(r => r.json())
             .then(data => {
-                setSessions(data);
+                setSessions(Array.isArray(data) ? data : []);
                 setLoading(false);
-            });
+            })
+            .catch(() => setLoading(false));
     }, []);
 
     const now = new Date();
@@ -47,10 +48,17 @@ function SessionsPage() {
                 <h1 className="text-2xl font-bold">
                     Welcome, {currentUser?.firstName}! 👋
                 </h1>
-                <Button onClick={() => navigate('/sessions/create')}>
+                <Button onClick={() => navigate(currentUser?.isProfileComplete ? '/sessions/create' : '/complete-profile')}>
                     + Create Session
                 </Button>
             </div>
+
+            {!currentUser?.isProfileComplete && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md flex items-center justify-between">
+                    <p className="text-sm text-yellow-800">Complete your profile to create and join sessions.</p>
+                    <Button size="sm" onClick={() => navigate('/complete-profile')}>Complete</Button>
+                </div>
+            )}
 
             <Card className="mb-6">
                 <CardContent className="pt-4 flex flex-col gap-4">

@@ -36,10 +36,11 @@ public class SessionService {
 
     @Transactional
     public Session createSession(User host, SportType sportType, String title,
-                                 LocalDateTime scheduledAt, LocalDateTime endTime,String googlePlaceId,
+                                 LocalDateTime scheduledAt, LocalDateTime endTime, String googlePlaceId,
                                  String facilityName, String facilityAddress,
                                  BigDecimal facilityLatitude, BigDecimal facilityLongitude,
-                                 Integer ageMin, Integer ageMax, Integer maxPlayers) {
+                                 Integer ageMin, Integer ageMax, Integer maxPlayers,
+                                 String genderPreference) {
 
         if (!userService.isProfileComplete(host)) {
             throw new IllegalArgumentException(
@@ -48,6 +49,10 @@ public class SessionService {
 
         if (!endTime.isAfter(scheduledAt)) {
             throw new IllegalArgumentException("End time must be after start time");
+        }
+
+        if (ageMin > ageMax) {
+            throw new IllegalArgumentException("Minimum age cannot be greater than maximum age");
         }
 
         // check host overlap
@@ -91,6 +96,7 @@ public class SessionService {
         session.setAgeMin(ageMin);
         session.setAgeMax(ageMax);
         session.setMaxPlayers(maxPlayers);
+        session.setGenderPreference(genderPreference);
         session.setCurrentPlayers(1);
 
         Session savedSession;
@@ -135,6 +141,11 @@ public class SessionService {
             LocalDateTime effectiveEnd = endTime != null ? endTime : session.getEndTime();
             if (!effectiveEnd.isAfter(effectiveStart)) {
                 throw new IllegalArgumentException("End time must be after start time");
+            }
+            int effectiveAgeMin = ageMin != null ? ageMin : session.getAgeMin();
+            int effectiveAgeMax = ageMax != null ? ageMax : session.getAgeMax();
+            if (effectiveAgeMin > effectiveAgeMax) {
+                throw new IllegalArgumentException("Minimum age cannot be greater than maximum age");
             }
             if (title != null) session.setTitle(title);
             if (scheduledAt != null) session.setScheduledAt(scheduledAt);

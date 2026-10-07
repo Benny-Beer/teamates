@@ -40,3 +40,6 @@ src/main/resources/application.properties.example
 teamates-frontend/node_modules
 teamates-frontend/build
 
+## Environment files
+.env
+.env.production

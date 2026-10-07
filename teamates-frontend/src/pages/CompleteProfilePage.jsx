@@ -20,23 +20,28 @@ function CompleteProfilePage() {
         setLoading(true);
         setError('');
 
-        const res = await fetch(`${API_URL}/api/users/complete-profile`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gender, birthDate })
-        });
+        try {
+            const res = await fetch(`${API_URL}/api/users/complete-profile`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gender, birthDate })
+            });
 
-        const data = await res.json();
+            const data = await res.json();
 
-        if (!res.ok) {
-            setError(data.message);
+            if (!res.ok) {
+                setError(data.message);
+                setLoading(false);
+                return;
+            }
+
+            login(data);
+            navigate('/sessions');
+        } catch {
+            setError('Network error. Please try again.');
             setLoading(false);
-            return;
         }
-
-        login(data);
-        navigate('/sessions');
     };
 
     return (
