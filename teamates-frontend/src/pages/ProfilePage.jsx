@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,7 @@ import API_URL from '../api/config';
 
 function ProfilePage() {
     const { currentUser, login } = useAuth();
+    const navigate = useNavigate();
     const [fullUser, setFullUser] = useState(null);
     const [editing, setEditing] = useState(false);
     const [firstName, setFirstName] = useState('');
@@ -77,6 +79,13 @@ function ProfilePage() {
     return (
         <div className="max-w-lg mx-auto p-8">
             <h1 className="text-2xl font-bold mb-6">Profile</h1>
+
+            {!fullUser.isProfileComplete && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md flex items-center justify-between">
+                    <p className="text-sm text-yellow-800">Complete your profile to join and create sessions.</p>
+                    <Button size="sm" onClick={() => navigate('/complete-profile')}>Complete</Button>
+                </div>
+            )}
 
             <Card>
                 <CardHeader>

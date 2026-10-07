@@ -46,6 +46,10 @@ public class SessionService {
                     "Please complete your profile before creating a session");
         }
 
+        if (!endTime.isAfter(scheduledAt)) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
+
         // check host overlap
         if (sessionRepository.existsOverlappingSessionForHost(
                 host.getUserId(), scheduledAt, endTime)) {
@@ -127,6 +131,11 @@ public class SessionService {
             if (title != null) session.setTitle(title);
         } else {
             // host only — can change everything
+            LocalDateTime effectiveStart = scheduledAt != null ? scheduledAt : session.getScheduledAt();
+            LocalDateTime effectiveEnd = endTime != null ? endTime : session.getEndTime();
+            if (!effectiveEnd.isAfter(effectiveStart)) {
+                throw new IllegalArgumentException("End time must be after start time");
+            }
             if (title != null) session.setTitle(title);
             if (scheduledAt != null) session.setScheduledAt(scheduledAt);
             if (endTime != null) session.setEndTime(endTime);

@@ -44,7 +44,9 @@ function CompleteProfilePage() {
             <Card className="w-full max-w-sm">
                 <CardHeader>
                     <CardTitle className="text-2xl">Complete your profile</CardTitle>
-                    <p className="text-muted-foreground text-sm">This is a one-time setup.</p>
+                    <p className="text-muted-foreground text-sm">
+                        To join and create sessions, complete your profile. You can also do this later from your profile page.
+                    </p>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -75,6 +77,9 @@ function CompleteProfilePage() {
 
                         <Button type="submit" disabled={loading} className="w-full">
                             {loading ? 'Saving...' : 'Continue'}
+                        </Button>
+                        <Button type="button" variant="ghost" className="w-full" onClick={() => navigate('/sessions')}>
+                            Skip for now
                         </Button>
                     </form>
                 </CardContent>
