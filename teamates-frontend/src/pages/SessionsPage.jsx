@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import API_URL from '../api/config';
 
 function SessionsPage() {
     const { currentUser } = useAuth();
@@ -16,12 +17,13 @@ function SessionsPage() {
     const [sportFilter, setSportFilter] = useState('');
 
     useEffect(() => {
-        fetch('/api/sessions/my', { credentials: 'include' })
+        fetch(`${API_URL}/api/sessions/my`, { credentials: 'include' })
             .then(r => r.json())
             .then(data => {
-                setSessions(data);
+                setSessions(Array.isArray(data) ? data : []);
                 setLoading(false);
-            });
+            })
+            .catch(() => setLoading(false));
     }, []);
 
     const now = new Date();
@@ -46,15 +48,20 @@ function SessionsPage() {
                 <h1 className="text-2xl font-bold">
                     Welcome, {currentUser?.firstName}! 👋
                 </h1>
-                <Button onClick={() => navigate('/sessions/create')}>
+                <Button onClick={() => navigate(currentUser?.isProfileComplete ? '/sessions/create' : '/complete-profile')}>
                     + Create Session
                 </Button>
             </div>
 
-            {/* Filters */}
+            {!currentUser?.isProfileComplete && (
+                <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md flex items-center justify-between">
+                    <p className="text-sm text-yellow-800">Complete your profile to create and join sessions.</p>
+                    <Button size="sm" onClick={() => navigate('/complete-profile')}>Complete</Button>
+                </div>
+            )}
+
             <Card className="mb-6">
                 <CardContent className="pt-4 flex flex-col gap-4">
-                    {/* Time filter — radio buttons */}
                     <div className="flex items-center gap-6">
                         <span className="text-sm font-medium">Show:</span>
                         {['future', 'past', 'all'].map(option => (
@@ -72,7 +79,6 @@ function SessionsPage() {
                         ))}
                     </div>
 
-                    {/* Sport filter — Shadcn Select */}
                     <div className="flex items-center gap-3">
                         <span className="text-sm font-medium">Sport:</span>
                         <Select value={sportFilter} onValueChange={setSportFilter}>
@@ -90,7 +96,6 @@ function SessionsPage() {
                 </CardContent>
             </Card>
 
-            {/* Sessions list */}
             <div className="flex flex-col gap-4">
                 {filteredSessions.length === 0 ? (
                     <p className="text-muted-foreground">No sessions found.</p>

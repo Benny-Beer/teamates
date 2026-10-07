@@ -15,7 +15,7 @@ function App() {
   useEffect(() => {
     if (document.querySelector('script[src*="maps.googleapis.com"]')) return;
     const mapsScript = document.createElement('script');
-    mapsScript.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_KEY}&libraries=places`;
+    mapsScript.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_KEY}&libraries=places&loading=async`;
     mapsScript.async = true;
     mapsScript.defer = true;
     document.body.appendChild(mapsScript);

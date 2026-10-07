@@ -1,11 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Card, CardContent } from '@/components/ui/card';
+import API_URL from '../api/config';
 
 function LoginPage() {
     const { login, currentUser } = useAuth();
     const navigate = useNavigate();
+    const initialized = useRef(false);
 
     useEffect(() => {
         if (currentUser) {
@@ -14,12 +16,18 @@ function LoginPage() {
     }, [currentUser, navigate]);
 
     const authWithProvider = async (provider, token) => {
-        const res = await fetch(`/api/auth/${provider}`, {
+        const res = await fetch(`${API_URL}/api/auth/${provider}`, {
             method: 'POST',
             credentials: 'include',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token })
         });
+
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`Auth failed: ${res.status} ${text}`);
+        }
+
         const user = await res.json();
         login(user);
 
@@ -37,7 +45,13 @@ function LoginPage() {
     useEffect(() => {
         window.handleGoogleResponse = handleGoogleResponse;
 
-        if (window.google) {
+        let cancelled = false;
+
+        const initGoogle = () => {
+            if (cancelled || initialized.current) return;
+            if (!window.google?.accounts?.id) return;
+
+            initialized.current = true;
             window.google.accounts.id.initialize({
                 client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
                 callback: handleGoogleResponse
@@ -46,7 +60,21 @@ function LoginPage() {
                 document.getElementById('g_id_signin_btn'),
                 { type: 'standard', size: 'large', theme: 'outline', text: 'sign_in_with', shape: 'rectangular' }
             );
+        };
+
+        if (window.google?.accounts?.id) {
+            initGoogle();
+        } else {
+            const intervalId = setInterval(() => {
+                if (window.google?.accounts?.id) {
+                    clearInterval(intervalId);
+                    initGoogle();
+                }
+            }, 100);
+            return () => { cancelled = true; clearInterval(intervalId); };
         }
+
+        return () => { cancelled = true; };
     }, []);
 
     return (

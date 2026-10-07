@@ -18,7 +18,7 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    @Value("${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://localhost:8080}")
+    @Value("${ALLOWED_ORIGINS:${API_URL}}")
     private String allowedOrigins;
 
     @Bean

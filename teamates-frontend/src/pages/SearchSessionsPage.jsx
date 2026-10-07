@@ -1,23 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { usePlaceAutocomplete } from '../hooks/usePlaceAutocomplete';
 import { SPORT_TYPES } from '../constants/sports';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import API_URL from '../api/config';
 
 function SearchSessionsPage() {
     const navigate = useNavigate();
+    const { currentUser } = useAuth();
     const [sportType, setSportType] = useState('');
     const [radius, setRadius] = useState(5000);
     const [selectedPlace, setSelectedPlace] = useState(null);
+    const [genderFilter, setGenderFilter] = useState('');
     const [sessions, setSessions] = useState([]);
+    const [mySessions, setMySessions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searched, setSearched] = useState(false);
     const [error, setError] = useState('');
 
     usePlaceAutocomplete('search-autocomplete-container', setSelectedPlace);
+
+    useEffect(() => {
+        fetch(`${API_URL}/api/sessions/my`, { credentials: 'include' })
+            .then(r => r.json())
+            .then(data => setMySessions(Array.isArray(data) ? data : []))
+            .catch(() => {});
+    }, []);
 
     const handleSearch = async () => {
         if (!selectedPlace) {
@@ -27,8 +39,9 @@ function SearchSessionsPage() {
         setLoading(true);
         setError('');
 
-        let url = `/api/sessions/search?lat=${selectedPlace.lat}&lng=${selectedPlace.lng}&radius=${radius}`;
+        let url = `${API_URL}/api/sessions/search?lat=${selectedPlace.lat}&lng=${selectedPlace.lng}&radius=${radius}`;
         if (sportType && sportType !== 'all') url += `&sport=${sportType}`;
+        if (genderFilter) url += `&gender=${genderFilter}`;
 
         const res = await fetch(url, { credentials: 'include' });
         const data = await res.json();
@@ -41,7 +54,6 @@ function SearchSessionsPage() {
         <div className="max-w-2xl mx-auto p-8">
             <h1 className="text-2xl font-bold mb-6">Browse Sessions</h1>
 
-            {/* Search filters */}
             <Card className="mb-6">
                 <CardHeader>
                     <CardTitle className="text-lg">Search Filters</CardTitle>
@@ -63,6 +75,20 @@ function SearchSessionsPage() {
                                 {SPORT_TYPES.map(sport => (
                                     <SelectItem key={sport} value={sport}>{sport}</SelectItem>
                                 ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Gender (optional)</label>
+                        <Select value={genderFilter} onValueChange={setGenderFilter}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Any gender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="">Any gender</SelectItem>
+                                <SelectItem value="MALE">Male only</SelectItem>
+                                <SelectItem value="FEMALE">Female only</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -90,7 +116,6 @@ function SearchSessionsPage() {
                 </CardContent>
             </Card>
 
-            {/* Results */}
             {searched && (
                 <div className="flex flex-col gap-4">
                     {sessions.length === 0 ? (
@@ -98,36 +123,44 @@ function SearchSessionsPage() {
                             No sessions found. Try a larger radius or different sport.
                         </p>
                     ) : (
-                        sessions.map(session => (
-                            <Card
-                                key={session.sessionId}
-                                onClick={() => navigate(`/sessions/${session.sessionId}`)}
-                                className="cursor-pointer hover:shadow-md transition">
-                                <CardContent className="pt-4">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h2 className="text-lg font-bold">
-                                                {session.title || session.sportType}
-                                            </h2>
-                                            <p className="text-muted-foreground text-sm">{session.facilityName}</p>
-                                            <p className="text-muted-foreground text-sm">
-                                                {new Date(session.scheduledAt).toLocaleString()}
-                                            </p>
-                                            <p className="text-muted-foreground text-sm">
-                                                Hosted by {session.hostName}
-                                            </p>
+                        sessions.map(session => {
+                            const isHost = session.hostId === currentUser?.userId;
+                            const isJoined = mySessions.some(s => s.sessionId === session.sessionId);
+                            return (
+                                <Card
+                                    key={session.sessionId}
+                                    onClick={() => navigate(`/sessions/${session.sessionId}`)}
+                                    className="cursor-pointer hover:shadow-md transition">
+                                    <CardContent className="pt-4">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h2 className="text-lg font-bold">
+                                                    {session.title || session.sportType}
+                                                </h2>
+                                                <p className="text-muted-foreground text-sm">{session.facilityName}</p>
+                                                <p className="text-muted-foreground text-sm">
+                                                    {new Date(session.scheduledAt).toLocaleString()}
+                                                </p>
+                                                <p className="text-muted-foreground text-sm">
+                                                    Hosted by {session.hostName}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col items-end gap-1">
+                                                <Badge variant="secondary">
+                                                    {session.currentPlayers}/{session.maxPlayers}
+                                                </Badge>
+                                                {isHost && <span className="text-xs font-medium text-blue-600">👑 Host</span>}
+                                                {!isHost && isJoined && <span className="text-xs font-medium text-green-600">✓ Joined</span>}
+                                            </div>
                                         </div>
-                                        <Badge variant="secondary">
-                                            {session.currentPlayers}/{session.maxPlayers}
-                                        </Badge>
-                                    </div>
-                                    <div className="mt-2 flex gap-2">
-                                        <Badge variant="outline">{session.sportType}</Badge>
-                                        <Badge variant="outline">Age {session.ageMin}–{session.ageMax}</Badge>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))
+                                        <div className="mt-2 flex gap-2">
+                                            <Badge variant="outline">{session.sportType}</Badge>
+                                            <Badge variant="outline">Age {session.ageMin}–{session.ageMax}</Badge>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })
                     )}
                 </div>
             )}
